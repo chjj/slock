@@ -15,13 +15,15 @@
 int
 main(int argc, char **argv) {
 	char buf[32], passwd[256];
-	int num, prev_nitem;
+	int num, prev_nitem, screen;
 	struct spwd *sp;
 	unsigned int i, len;
 	Bool running = True;
 	KeySym ksym;
 	Display *dpy;
+	Window w;
 	XEvent ev;
+	XSetWindowAttributes wa;
 
 	if((argc > 1) && !strncmp(argv[1], "-v", 3)) {
 		fputs("slock-"VERSION", (C)opyright MMVI Anselm R. Garbe\n", stdout);
@@ -36,12 +38,22 @@ main(int argc, char **argv) {
 		fputs("slock: cannot open display\n", stderr);
 		exit(EXIT_FAILURE);
 	}
+	screen = DefaultScreen(dpy);
 
 	/* init */
 	passwd[0] = 0;
-	while(XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync,
+	while(XGrabKeyboard(dpy, RootWindow(dpy, screen), True, GrabModeAsync,
 			 GrabModeAsync, CurrentTime) != GrabSuccess)
 		usleep(1000);
+
+	wa.override_redirect = 1;
+	wa.background_pixel = BlackPixel(dpy, screen);
+	w = XCreateWindow(dpy, RootWindow(dpy, screen), 0, 0,
+			DisplayWidth(dpy, screen), DisplayHeight(dpy, screen),
+			0, DefaultDepth(dpy, screen), CopyFromParent,
+			DefaultVisual(dpy, screen), CWOverrideRedirect | CWBackPixel, &wa);
+	XMapRaised(dpy, w);
+	XSync(dpy, False);
 
 	/* main event loop */
 	while(running && !XNextEvent(dpy, &ev))
@@ -66,7 +78,8 @@ main(int argc, char **argv) {
 			}
 			switch(ksym) {
 			case XK_Return:
-				running = strncmp(crypt(passwd, sp->sp_pwdp), sp->sp_pwdp, sizeof(passwd));
+				if((running = strncmp(crypt(passwd, sp->sp_pwdp), sp->sp_pwdp, sizeof(passwd))))
+					XBell(dpy, 100);
 				passwd[0] = 0;
 				break;
 			case XK_Escape:
@@ -87,6 +100,7 @@ main(int argc, char **argv) {
 				break;
 			}
 		}
+	XDestroyWindow(dpy, w);
 	XCloseDisplay(dpy);
 	return 0;
 }
