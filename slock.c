@@ -8,21 +8,24 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
 int
 main(int argc, char **argv) {
+	char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
 	char buf[32], passwd[256];
 	int num, prev_nitem, screen;
 	struct spwd *sp;
 	unsigned int i, len;
 	Bool running = True;
-	KeySym ksym;
+	Cursor invisible;
 	Display *dpy;
+	KeySym ksym;
+	Pixmap pmap;
 	Window w;
+	XColor black, dummy;
 	XEvent ev;
 	XSetWindowAttributes wa;
 
@@ -54,7 +57,10 @@ main(int argc, char **argv) {
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen), CWOverrideRedirect | CWBackPixel, &wa);
 
-	XDefineCursor(dpy, w, XCreateFontCursor(dpy, XC_coffee_mug));
+	XAllocNamedColor(dpy, DefaultColormap(dpy, screen), "black", &black, &dummy);
+	pmap = XCreateBitmapFromData(dpy, w, curs, 8, 8);
+	invisible = XCreatePixmapCursor(dpy, pmap, pmap, &black, &black, 0, 0);
+	XDefineCursor(dpy, w, invisible);
 	XMapRaised(dpy, w);
 	XSync(dpy, False);
 
@@ -103,6 +109,7 @@ main(int argc, char **argv) {
 				break;
 			}
 		}
+	XFreePixmap(dpy, pmap);
 	XDestroyWindow(dpy, w);
 	XCloseDisplay(dpy);
 	return 0;
