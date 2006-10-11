@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -52,6 +53,8 @@ main(int argc, char **argv) {
 			DisplayWidth(dpy, screen), DisplayHeight(dpy, screen),
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen), CWOverrideRedirect | CWBackPixel, &wa);
+
+	XDefineCursor(dpy, w, XCreateFontCursor(dpy, XC_coffee_mug));
 	XMapRaised(dpy, w);
 	XSync(dpy, False);
 
