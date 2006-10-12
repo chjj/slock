@@ -15,10 +15,13 @@ INCS = -I. -I/usr/include -I${X11INC}
 LIBS = -L/usr/lib -lc -lcrypt -L${X11LIB} -lX11
 
 # flags
-CFLAGS = -Os ${INCS} -DVERSION=\"${VERSION}\"
+CFLAGS = -Os ${INCS} -DVERSION=\"${VERSION}\" -DHAVE_SHADOW_H
 LDFLAGS = ${LIBS}
 #CFLAGS = -g -Wall -O2 ${INCS} -DVERSION=\"${VERSION}\"
 #LDFLAGS = -g ${LIBS}
+
+# On *BSD remove -DHAVE_SHADOW_H from CFLAGS
+# On OpenBSD remove -lcrypt from LIBS
 
 # compiler and linker
 CC = cc

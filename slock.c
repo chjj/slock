@@ -2,7 +2,13 @@
  * See LICENSE file for license details.
  */
 #define _XOPEN_SOURCE
+
+#if HAVE_SHADOW_H
 #include <shadow.h>
+#else
+#include <pwd.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,7 +23,11 @@ main(int argc, char **argv) {
 	char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
 	char buf[32], passwd[256];
 	int num, prev_nitem, screen;
+#if HAVE_SHADOW_H
 	struct spwd *sp;
+#else
+	struct passwd *pw;
+#endif
 	unsigned int i, len;
 	Bool running = True;
 	Cursor invisible;
@@ -33,11 +43,17 @@ main(int argc, char **argv) {
 		fputs("slock-"VERSION", (C)opyright MMVI Anselm R. Garbe\n", stdout);
 		exit(EXIT_SUCCESS);
 	}
-	if(!(sp = getspnam(getenv("USER")))) {
+	if(geteuid() != 0) {
 		fputs("slock: cannot retrieve password entry (make sure to suid slock)\n", stderr);
 		exit(EXIT_FAILURE);
 	}
+#if HAVE_SHADOW_H
+	sp = getspnam(getenv("USER"));
 	endspent();
+#else
+	pw = getpwuid(getuid());
+	endpwent();
+#endif
 	if(!(dpy = XOpenDisplay(0))) {
 		fputs("slock: cannot open display\n", stderr);
 		exit(EXIT_FAILURE);
@@ -87,7 +103,11 @@ main(int argc, char **argv) {
 			}
 			switch(ksym) {
 			case XK_Return:
+#if HAVE_SHADOW_H
 				if((running = strncmp(crypt(passwd, sp->sp_pwdp), sp->sp_pwdp, sizeof(passwd))))
+#else
+				if((running = strncmp(crypt(passwd, pw->pw_passwd), pw->pw_passwd, sizeof(passwd))))
+#endif
 					XBell(dpy, 100);
 				passwd[0] = 0;
 				break;
