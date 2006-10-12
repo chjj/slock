@@ -91,17 +91,6 @@ main(int argc, char **argv) {
 					|| IsMiscFunctionKey(ksym) || IsPFKey(ksym)
 					|| IsPrivateKeypadKey(ksym))
 				continue;
-			/* first check if a control mask is omitted */
-			if(ev.xkey.state & ControlMask) {
-				switch (ksym) {
-				case XK_h:
-				case XK_H: ksym = XK_BackSpace;
-					break;
-				case XK_u:
-				case XK_U: passwd[0] = 0;
-					continue;
-				}
-			}
 			switch(ksym) {
 			case XK_Return:
 #if HAVE_SHADOW_H
