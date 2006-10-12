@@ -17,7 +17,7 @@ LIBS = -L/usr/lib -lc -lcrypt -L${X11LIB} -lX11
 # flags
 CFLAGS = -Os ${INCS} -DVERSION=\"${VERSION}\" -DHAVE_SHADOW_H
 LDFLAGS = ${LIBS}
-#CFLAGS = -g -Wall -O2 ${INCS} -DVERSION=\"${VERSION}\"
+#CFLAGS = -g -Wall -O2 ${INCS} -DVERSION=\"${VERSION}\" -DHAVE_SHADOW_H
 #LDFLAGS = -g ${LIBS}
 
 # On *BSD remove -DHAVE_SHADOW_H from CFLAGS

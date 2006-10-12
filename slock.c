@@ -1,7 +1,7 @@
 /* (C)opyright MMIV-MMV Anselm R. Garbe <garbeam at gmail dot com>
  * See LICENSE file for license details.
  */
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE 500
 
 #if HAVE_SHADOW_H
 #include <shadow.h>
@@ -9,6 +9,7 @@
 #include <pwd.h>
 #endif
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,13 +23,13 @@ int
 main(int argc, char **argv) {
 	char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
 	char buf[32], passwd[256];
-	int num, prev_nitem, screen;
+	int num, screen;
 #if HAVE_SHADOW_H
 	struct spwd *sp;
 #else
 	struct passwd *pw;
 #endif
-	unsigned int i, len;
+	unsigned int len;
 	Bool running = True;
 	Cursor invisible;
 	Display *dpy;
