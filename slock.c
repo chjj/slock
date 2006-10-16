@@ -63,9 +63,6 @@ main(int argc, char **argv) {
 
 	/* init */
 	passwd[0] = 0;
-	while(XGrabKeyboard(dpy, RootWindow(dpy, screen), True, GrabModeAsync,
-			 GrabModeAsync, CurrentTime) != GrabSuccess)
-		usleep(1000);
 
 	wa.override_redirect = 1;
 	wa.background_pixel = BlackPixel(dpy, screen);
@@ -78,6 +75,11 @@ main(int argc, char **argv) {
 	pmap = XCreateBitmapFromData(dpy, w, curs, 8, 8);
 	invisible = XCreatePixmapCursor(dpy, pmap, pmap, &black, &black, 0, 0);
 	XDefineCursor(dpy, w, invisible);
+	running = XGrabPointer(dpy, RootWindow(dpy, screen), False,
+			ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+			GrabModeAsync, GrabModeSync, None, invisible, CurrentTime) == GrabSuccess
+		&& XGrabKeyboard(dpy, RootWindow(dpy, screen), True, GrabModeAsync,
+			 GrabModeAsync, CurrentTime) == GrabSuccess;
 	XMapRaised(dpy, w);
 	XSync(dpy, False);
 
@@ -119,6 +121,7 @@ main(int argc, char **argv) {
 				break;
 			}
 		}
+	XUngrabPointer(dpy, CurrentTime);
 	XFreePixmap(dpy, pmap);
 	XDestroyWindow(dpy, w);
 	XCloseDisplay(dpy);
