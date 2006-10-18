@@ -77,9 +77,12 @@ main(int argc, char **argv) {
 	XDefineCursor(dpy, w, invisible);
 	running = XGrabPointer(dpy, RootWindow(dpy, screen), False,
 			ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
-			GrabModeAsync, GrabModeSync, None, invisible, CurrentTime) == GrabSuccess
-		&& XGrabKeyboard(dpy, RootWindow(dpy, screen), True, GrabModeAsync,
-			 GrabModeAsync, CurrentTime) == GrabSuccess;
+			GrabModeAsync, GrabModeSync, None, invisible, CurrentTime) == GrabSuccess;
+	len = 10;
+	for(len = 10; len && (XGrabKeyboard(dpy, RootWindow(dpy, screen), True, GrabModeAsync,
+		GrabModeAsync, CurrentTime) != GrabSuccess); len--)
+		usleep(1000);
+	running = running && (len > 0);
 	XMapRaised(dpy, w);
 	XSync(dpy, False);
 
