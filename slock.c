@@ -2,6 +2,9 @@
  * See LICENSE file for license details.
  */
 #define _XOPEN_SOURCE 500
+#if HAVE_SHADOW_H
+#include <shadow.h>
+#endif
 
 #include <ctype.h>
 #include <pwd.h>
@@ -9,9 +12,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#if HAVE_SHADOW_H
-#include <shadow.h>
-#endif
 #include <sys/types.h>
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
@@ -75,8 +75,6 @@ main(int argc, char **argv) {
 	screen = DefaultScreen(dpy);
 
 	/* init */
-	len = 0;
-
 	wa.override_redirect = 1;
 	wa.background_pixel = BlackPixel(dpy, screen);
 	w = XCreateWindow(dpy, RootWindow(dpy, screen), 0, 0,
@@ -96,6 +94,7 @@ main(int argc, char **argv) {
 		GrabModeAsync, CurrentTime) != GrabSuccess); len--)
 		usleep(1000);
 	running = running && (len > 0);
+	len = 0;
 	XMapRaised(dpy, w);
 	XSync(dpy, False);
 
@@ -120,11 +119,11 @@ main(int argc, char **argv) {
 				break;
 			case XK_BackSpace:
 				if(len)
-				  --len;
+					--len;
 				break;
 			default:
 				if(num && !iscntrl((int) buf[0])) {
-					memcpy(passwd + len,buf,num);
+					memcpy(passwd + len, buf, num);
 					len += num;
 				}
 				break;
