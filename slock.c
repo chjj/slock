@@ -3,32 +3,55 @@
  */
 #define _XOPEN_SOURCE 500
 
-#if HAVE_SHADOW_H
-#include <shadow.h>
-#else
-#include <pwd.h>
-#endif
-
 #include <ctype.h>
+#include <pwd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#if HAVE_SHADOW_H
+#include <shadow.h>
+#endif
 #include <sys/types.h>
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+
+const char *
+get_password() { /* only run as root */
+	const char *rval;
+	struct passwd *pw;
+
+	if(geteuid() != 0) {
+		fputs("slock: cannot retrieve password entry (make sure to suid slock)\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+	pw = getpwuid(getuid());
+	endpwent();
+	rval =  pw->pw_passwd;
+
+#if HAVE_SHADOW_H
+	{
+		struct spwd *sp;
+		sp = getspnam(getenv("USER"));
+		endspent();
+		rval = sp->sp_pwdp;
+	}
+#endif
+	/* drop privileges */
+	if(setgid(pw->pw_gid) < 0 || setuid(pw->pw_uid) < 0) {
+		fputs("slock: cannot drop privileges\n",stdout);
+		exit(EXIT_FAILURE);
+	}
+	return rval;
+}
 
 int
 main(int argc, char **argv) {
 	char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
 	char buf[32], passwd[256];
 	int num, screen;
-#if HAVE_SHADOW_H
-	struct spwd *sp;
-#else
-	struct passwd *pw;
-#endif
+	const char *pws;
 	unsigned int len;
 	Bool running = True;
 	Cursor invisible;
@@ -44,17 +67,7 @@ main(int argc, char **argv) {
 		fputs("slock-"VERSION", (C)opyright MMVI Anselm R. Garbe\n", stdout);
 		exit(EXIT_SUCCESS);
 	}
-	if(geteuid() != 0) {
-		fputs("slock: cannot retrieve password entry (make sure to suid slock)\n", stderr);
-		exit(EXIT_FAILURE);
-	}
-#if HAVE_SHADOW_H
-	sp = getspnam(getenv("USER"));
-	endspent();
-#else
-	pw = getpwuid(getuid());
-	endpwent();
-#endif
+	pws = get_password();
 	if(!(dpy = XOpenDisplay(0))) {
 		fputs("slock: cannot open display\n", stderr);
 		exit(EXIT_FAILURE);
@@ -62,7 +75,7 @@ main(int argc, char **argv) {
 	screen = DefaultScreen(dpy);
 
 	/* init */
-	passwd[0] = 0;
+	len = 0;
 
 	wa.override_redirect = 1;
 	wa.background_pixel = BlackPixel(dpy, screen);
@@ -89,7 +102,6 @@ main(int argc, char **argv) {
 	/* main event loop */
 	while(running && !XNextEvent(dpy, &ev))
 		if(ev.type == KeyPress) {
-			len = strlen(passwd);
 			buf[0] = 0;
 			num = XLookupString(&ev.xkey, buf, sizeof(buf), &ksym, 0);
 			if(IsFunctionKey(ksym) || IsKeypadKey(ksym)
@@ -98,28 +110,22 @@ main(int argc, char **argv) {
 				continue;
 			switch(ksym) {
 			case XK_Return:
-#if HAVE_SHADOW_H
-				if((running = strncmp(crypt(passwd, sp->sp_pwdp), sp->sp_pwdp, sizeof(passwd))))
-#else
-				if((running = strncmp(crypt(passwd, pw->pw_passwd), pw->pw_passwd, sizeof(passwd))))
-#endif
+				passwd[len] = 0;
+				if((running = strcmp(crypt(passwd, pws), pws)) != 0)
 					XBell(dpy, 100);
-				passwd[0] = 0;
+				len = 0;
 				break;
 			case XK_Escape:
-				passwd[0] = 0;
+				len = 0;
 				break;
 			case XK_BackSpace:
 				if(len)
-					passwd[--len] = 0;
+				  --len;
 				break;
 			default:
 				if(num && !iscntrl((int) buf[0])) {
-					buf[num] = 0;
-					if(len)
-						strncat(passwd, buf, sizeof(passwd));
-					else
-						strncpy(passwd, buf, sizeof(passwd));
+					memcpy(passwd + len,buf,num);
+					len += num;
 				}
 				break;
 			}
