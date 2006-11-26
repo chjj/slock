@@ -102,7 +102,7 @@ main(int argc, char **argv) {
 	while(running && !XNextEvent(dpy, &ev))
 		if(ev.type == KeyPress) {
 			buf[0] = 0;
-			num = XLookupString(&ev.xkey, buf, sizeof(buf), &ksym, 0);
+			num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
 			if(IsFunctionKey(ksym) || IsKeypadKey(ksym)
 					|| IsMiscFunctionKey(ksym) || IsPFKey(ksym)
 					|| IsPrivateKeypadKey(ksym))
