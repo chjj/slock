@@ -21,7 +21,7 @@ LDFLAGS = ${LIBS}
 #LDFLAGS = -g ${LIBS}
 
 # On *BSD remove -DHAVE_SHADOW_H from CFLAGS
-# On OpenBSD remove -lcrypt from LIBS
+# On OpenBSD and Darwin remove -lcrypt from LIBS
 
 # compiler and linker
 CC = cc
