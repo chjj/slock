@@ -1,4 +1,4 @@
-/* (C)opyright MMIV-MMV Anselm R. Garbe <garbeam at gmail dot com>
+/* (C)opyright MMVI-MMVII Anselm R. Garbe <garbeam at gmail dot com>
  * See LICENSE file for license details.
  */
 #define _XOPEN_SOURCE 500
@@ -122,7 +122,7 @@ main(int argc, char **argv) {
 					--len;
 				break;
 			default:
-				if(num && !iscntrl((int) buf[0])) {
+				if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) { 
 					memcpy(passwd + len, buf, num);
 					len += num;
 				}

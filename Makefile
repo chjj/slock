@@ -1,5 +1,5 @@
 # slock - simple screen locker
-#   (C)opyright MMVI Anselm R. Garbe
+#   (C)opyright MMVI-MMVII Anselm R. Garbe
 
 include config.mk
 
