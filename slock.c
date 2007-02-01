@@ -92,7 +92,7 @@ main(int argc, char **argv) {
 	len = 10;
 	for(len = 10; len && (XGrabKeyboard(dpy, RootWindow(dpy, screen), True, GrabModeAsync,
 		GrabModeAsync, CurrentTime) != GrabSuccess); len--)
-		usleep(1000);
+		usleep(10000);
 	running = running && (len > 0);
 	len = 0;
 	XMapRaised(dpy, w);
