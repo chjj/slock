@@ -58,7 +58,7 @@ main(int argc, char **argv) {
 	Display *dpy;
 	KeySym ksym;
 	Pixmap pmap;
-	Window w;
+	Window root, w;
 	XColor black, dummy;
 	XEvent ev;
 	XSetWindowAttributes wa;
@@ -73,12 +73,12 @@ main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	screen = DefaultScreen(dpy);
+	root = RootWindow(dpy, screen);
 
 	/* init */
 	wa.override_redirect = 1;
 	wa.background_pixel = BlackPixel(dpy, screen);
-	w = XCreateWindow(dpy, RootWindow(dpy, screen), 0, 0,
-			DisplayWidth(dpy, screen), DisplayHeight(dpy, screen),
+	w = XCreateWindow(dpy, root, 0, 0, DisplayWidth(dpy, screen), DisplayHeight(dpy, screen),
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen), CWOverrideRedirect | CWBackPixel, &wa);
 
@@ -86,15 +86,21 @@ main(int argc, char **argv) {
 	pmap = XCreateBitmapFromData(dpy, w, curs, 8, 8);
 	invisible = XCreatePixmapCursor(dpy, pmap, pmap, &black, &black, 0, 0);
 	XDefineCursor(dpy, w, invisible);
-	for(len = 1000; len && (XGrabPointer(dpy, RootWindow(dpy, screen), False,
-			ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
-			GrabModeAsync, GrabModeSync, None, invisible, CurrentTime) != GrabSuccess); len--)
+	for(len = 1000; len; len--) {
+		if(XGrabPointer(dpy, root, False, ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+			GrabModeAsync, GrabModeSync, None, invisible, CurrentTime) == GrabSuccess)
+			break;
 		usleep(1000);
-	running = running && (len > 0);
-	for(len = 1000; len && (XGrabKeyboard(dpy, RootWindow(dpy, screen), True, GrabModeAsync,
-		GrabModeAsync, CurrentTime) != GrabSuccess); len--)
-		usleep(1000);
-	running = running && (len > 0);
+	}
+	if((running = running && (len > 0))) {
+		for(len = 1000; len; len--) {
+			if(XGrabKeyboard(dpy, root, True, GrabModeAsync, GrabModeAsync, CurrentTime)
+				== GrabSuccess)
+				break;
+			usleep(1000);
+		}
+		running = (len > 0);
+	}
 	len = 0;
 	XMapRaised(dpy, w);
 	XSync(dpy, False);
