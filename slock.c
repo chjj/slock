@@ -86,13 +86,14 @@ main(int argc, char **argv) {
 	pmap = XCreateBitmapFromData(dpy, w, curs, 8, 8);
 	invisible = XCreatePixmapCursor(dpy, pmap, pmap, &black, &black, 0, 0);
 	XDefineCursor(dpy, w, invisible);
-	running = XGrabPointer(dpy, RootWindow(dpy, screen), False,
+	for(len = 1000; len && (XGrabPointer(dpy, RootWindow(dpy, screen), False,
 			ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
-			GrabModeAsync, GrabModeSync, None, invisible, CurrentTime) == GrabSuccess;
-	len = 10;
-	for(len = 10; len && (XGrabKeyboard(dpy, RootWindow(dpy, screen), True, GrabModeAsync,
+			GrabModeAsync, GrabModeSync, None, invisible, CurrentTime) != GrabSuccess); len--)
+		usleep(1000);
+	running = running && (len > 0);
+	for(len = 1000; len && (XGrabKeyboard(dpy, RootWindow(dpy, screen), True, GrabModeAsync,
 		GrabModeAsync, CurrentTime) != GrabSuccess); len--)
-		usleep(10000);
+		usleep(1000);
 	running = running && (len > 0);
 	len = 0;
 	XMapRaised(dpy, w);
