@@ -81,21 +81,20 @@ main(int argc, char **argv) {
 	w = XCreateWindow(dpy, root, 0, 0, DisplayWidth(dpy, screen), DisplayHeight(dpy, screen),
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen), CWOverrideRedirect | CWBackPixel, &wa);
-
 	XAllocNamedColor(dpy, DefaultColormap(dpy, screen), "black", &black, &dummy);
 	pmap = XCreateBitmapFromData(dpy, w, curs, 8, 8);
 	invisible = XCreatePixmapCursor(dpy, pmap, pmap, &black, &black, 0, 0);
 	XDefineCursor(dpy, w, invisible);
 	XMapRaised(dpy, w);
 	for(len = 1000; len; len--) {
-		if(XGrabPointer(dpy, w, False, ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+		if(XGrabPointer(dpy, root, False, ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
 			GrabModeAsync, GrabModeSync, None, invisible, CurrentTime) == GrabSuccess)
 			break;
 		usleep(1000);
 	}
 	if((running = running && (len > 0))) {
 		for(len = 1000; len; len--) {
-			if(XGrabKeyboard(dpy, w, True, GrabModeAsync, GrabModeAsync, CurrentTime)
+			if(XGrabKeyboard(dpy, root, True, GrabModeAsync, GrabModeAsync, CurrentTime)
 				== GrabSuccess)
 				break;
 			usleep(1000);
