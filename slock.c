@@ -1,6 +1,5 @@
-/* (C)opyright MMVI-MMVII Anselm R. Garbe <garbeam at gmail dot com>
- * See LICENSE file for license details.
- */
+/* © 2006-2007 Anselm R. Garbe <garbeam at gmail dot com>
+ * See LICENSE file for license details. */
 #define _XOPEN_SOURCE 500
 #if HAVE_SHADOW_H
 #include <shadow.h>
@@ -64,7 +63,7 @@ main(int argc, char **argv) {
 	XSetWindowAttributes wa;
 
 	if((argc > 1) && !strncmp(argv[1], "-v", 3)) {
-		fputs("slock-"VERSION", (C)opyright MMVI Anselm R. Garbe\n", stdout);
+		fputs("slock-"VERSION", © 2006-2007 Anselm R. Garbe\n", stdout);
 		exit(EXIT_SUCCESS);
 	}
 	pws = get_password();
