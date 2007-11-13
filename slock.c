@@ -87,7 +87,7 @@ main(int argc, char **argv) {
 	XMapRaised(dpy, w);
 	for(len = 1000; len; len--) {
 		if(XGrabPointer(dpy, root, False, ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
-			GrabModeAsync, GrabModeSync, None, invisible, CurrentTime) == GrabSuccess)
+			GrabModeAsync, GrabModeAsync, None, invisible, CurrentTime) == GrabSuccess)
 			break;
 		usleep(1000);
 	}
