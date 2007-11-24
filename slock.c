@@ -69,8 +69,10 @@ main(int argc, char **argv) {
 	XEvent ev;
 	XSetWindowAttributes wa;
 
-	if((argc > 1) && !strncmp(argv[1], "-v", 3))
+	if((argc == 2) && !strcmp("-v", argv[1]))
 		eprint("slock-"VERSION", © 2006-2007 Anselm R. Garbe, Sander van Dijk\n");
+	else if(argc != 1)
+		eprint("usage: slock [-v]\n");
 	pws = get_password();
 	if(!(dpy = XOpenDisplay(0)))
 		eprint("slock: cannot open display\n");
