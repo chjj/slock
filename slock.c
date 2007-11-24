@@ -7,6 +7,7 @@
 
 #include <ctype.h>
 #include <pwd.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -16,15 +17,23 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
+void
+eprint(const char *errstr, ...) {
+	va_list ap;
+
+	va_start(ap, errstr);
+	vfprintf(stderr, errstr, ap);
+	va_end(ap);
+	exit(EXIT_FAILURE);
+}
+
 const char *
 get_password() { /* only run as root */
 	const char *rval;
 	struct passwd *pw;
 
-	if(geteuid() != 0) {
-		fputs("slock: cannot retrieve password entry (make sure to suid slock)\n", stderr);
-		exit(EXIT_FAILURE);
-	}
+	if(geteuid() != 0)
+		eprint("slock: cannot retrieve password entry (make sure to suid slock)\n");
 	pw = getpwuid(getuid());
 	endpwent();
 	rval =  pw->pw_passwd;
@@ -38,10 +47,8 @@ get_password() { /* only run as root */
 	}
 #endif
 	/* drop privileges */
-	if(setgid(pw->pw_gid) < 0 || setuid(pw->pw_uid) < 0) {
-		fputs("slock: cannot drop privileges\n",stdout);
-		exit(EXIT_FAILURE);
-	}
+	if(setgid(pw->pw_gid) < 0 || setuid(pw->pw_uid) < 0)
+		eprint("slock: cannot drop privileges\n");
 	return rval;
 }
 
@@ -62,15 +69,11 @@ main(int argc, char **argv) {
 	XEvent ev;
 	XSetWindowAttributes wa;
 
-	if((argc > 1) && !strncmp(argv[1], "-v", 3)) {
-		fputs("slock-"VERSION", © 2006-2007 Anselm R. Garbe\n", stdout);
-		exit(EXIT_SUCCESS);
-	}
+	if((argc > 1) && !strncmp(argv[1], "-v", 3))
+		eprint("slock-"VERSION", © 2006-2007 Anselm R. Garbe, Sander van Dijk\n");
 	pws = get_password();
-	if(!(dpy = XOpenDisplay(0))) {
-		fputs("slock: cannot open display\n", stderr);
-		exit(EXIT_FAILURE);
-	}
+	if(!(dpy = XOpenDisplay(0)))
+		eprint("slock: cannot open display\n");
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
 
