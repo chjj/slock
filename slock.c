@@ -70,7 +70,7 @@ main(int argc, char **argv) {
 	XSetWindowAttributes wa;
 
 	if((argc == 2) && !strcmp("-v", argv[1]))
-		eprint("slock-"VERSION", © 2006-2007 Anselm R. Garbe, Sander van Dijk\n");
+		eprint("slock-"VERSION", © 2006-2007 Anselm R. Garbe\n");
 	else if(argc != 1)
 		eprint("usage: slock [-v]\n");
 	pws = get_password();
