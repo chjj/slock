@@ -1,5 +1,4 @@
-/* © 2006-2008 Anselm R Garbe <garbeam at gmail dot com>
- * See LICENSE file for license details. */
+/* See LICENSE file for license details. */
 #define _XOPEN_SOURCE 500
 #if HAVE_SHADOW_H
 #include <shadow.h>
@@ -126,11 +125,16 @@ main(int argc, char **argv) {
 
 	/* main event loop */
 	while(running && !XNextEvent(dpy, &ev)) {
-		if(len == 0) 
+		if(len == 0 && DPMSCapable(dpy)) 
 			DPMSForceLevel(dpy, DPMSModeOff);
 		if(ev.type == KeyPress) {
 			buf[0] = 0;
 			num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
+			if(IsKeypadKey(ksym)) 
+				if(ksym == XK_KP_Enter)
+					ksym = XK_Return;
+				else if(ksym >= XK_KP_0 && ksym <= XK_KP_9)
+					ksym = (ksym - XK_KP_0) + XK_0;
 			if(IsFunctionKey(ksym) || IsKeypadKey(ksym)
 					|| IsMiscFunctionKey(ksym) || IsPFKey(ksym)
 					|| IsPrivateKeypadKey(ksym))
