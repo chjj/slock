@@ -125,8 +125,10 @@ main(int argc, char **argv) {
 
 	/* main event loop */
 	while(running && !XNextEvent(dpy, &ev)) {
-		if(len == 0 && DPMSCapable(dpy)) 
+		if(len == 0 && DPMSCapable(dpy)) {
+			DPMSEnabled(dpy);
 			DPMSForceLevel(dpy, DPMSModeOff);
+		}
 		if(ev.type == KeyPress) {
 			buf[0] = 0;
 			num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
