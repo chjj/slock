@@ -126,7 +126,7 @@ main(int argc, char **argv) {
 	/* main event loop */
 	while(running && !XNextEvent(dpy, &ev)) {
 		if(len == 0 && DPMSCapable(dpy)) {
-			DPMSEnabled(dpy);
+			DPMSEnable(dpy);
 			DPMSForceLevel(dpy, DPMSModeOff);
 		}
 		if(ev.type == KeyPress) {
