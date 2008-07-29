@@ -22,7 +22,7 @@
 #include <bsd_auth.h>
 #endif
 
-void
+static void
 die(const char *errstr, ...) {
 	va_list ap;
 
@@ -33,7 +33,7 @@ die(const char *errstr, ...) {
 }
 
 #ifndef HAVE_BSD_AUTH
-const char *
+static const char *
 get_password() { /* only run as root */
 	const char *rval;
 	struct passwd *pw;
@@ -132,11 +132,12 @@ main(int argc, char **argv) {
 		if(ev.type == KeyPress) {
 			buf[0] = 0;
 			num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
-			if(IsKeypadKey(ksym)) 
+			if(IsKeypadKey(ksym)) {
 				if(ksym == XK_KP_Enter)
 					ksym = XK_Return;
 				else if(ksym >= XK_KP_0 && ksym <= XK_KP_9)
 					ksym = (ksym - XK_KP_0) + XK_0;
+			}
 			if(IsFunctionKey(ksym) || IsKeypadKey(ksym)
 					|| IsMiscFunctionKey(ksym) || IsPFKey(ksym)
 					|| IsPrivateKeypadKey(ksym))
