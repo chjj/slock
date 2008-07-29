@@ -23,7 +23,7 @@
 #endif
 
 void
-eprint(const char *errstr, ...) {
+die(const char *errstr, ...) {
 	va_list ap;
 
 	va_start(ap, errstr);
@@ -39,7 +39,7 @@ get_password() { /* only run as root */
 	struct passwd *pw;
 
 	if(geteuid() != 0)
-		eprint("slock: cannot retrieve password entry (make sure to suid slock)\n");
+		die("slock: cannot retrieve password entry (make sure to suid slock)\n");
 	pw = getpwuid(getuid());
 	endpwent();
 	rval =  pw->pw_passwd;
@@ -55,7 +55,7 @@ get_password() { /* only run as root */
 
 	/* drop privileges */
 	if(setgid(pw->pw_gid) < 0 || setuid(pw->pw_uid) < 0)
-		eprint("slock: cannot drop privileges\n");
+		die("slock: cannot drop privileges\n");
 	return rval;
 }
 #endif
@@ -81,16 +81,16 @@ main(int argc, char **argv) {
 	XSetWindowAttributes wa;
 
 	if((argc == 2) && !strcmp("-v", argv[1]))
-		eprint("slock-"VERSION", © 2006-2008 Anselm R Garbe\n");
+		die("slock-"VERSION", © 2006-2008 Anselm R Garbe\n");
 	else if(argc != 1)
-		eprint("usage: slock [-v]\n");
+		die("usage: slock [-v]\n");
 
 #ifndef HAVE_BSD_AUTH
 	pws = get_password();
 #endif
 
 	if(!(dpy = XOpenDisplay(0)))
-		eprint("slock: cannot open display\n");
+		die("slock: cannot open display\n");
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
 
@@ -144,13 +144,11 @@ main(int argc, char **argv) {
 			switch(ksym) {
 			case XK_Return:
 				passwd[len] = 0;
-
 #ifdef HAVE_BSD_AUTH
 				running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd);
 #else
 				running = strcmp(crypt(passwd, pws), pws);
 #endif
-
 				if (running != 0)
 					XBell(dpy, 100);
 				len = 0;
