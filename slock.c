@@ -79,6 +79,7 @@ main(int argc, char **argv) {
 	XColor black, dummy;
 	XEvent ev;
 	XSetWindowAttributes wa;
+	CARD16 standby, suspend, off;
 
 	if((argc == 2) && !strcmp("-v", argv[1]))
 		die("slock-"VERSION", © 2006-2008 Anselm R Garbe\n");
@@ -123,12 +124,13 @@ main(int argc, char **argv) {
 	len = 0;
 	XSync(dpy, False);
 
+	if(DPMSCapable(dpy)) { /* save and customize DPMS settings */
+		DPMSGetTimeouts(dpy, &standby, &suspend, &off);
+		DPMSSetTimeouts(dpy, 10, 30, 90);
+	}
+
 	/* main event loop */
 	while(running && !XNextEvent(dpy, &ev)) {
-		if(len == 0 && DPMSCapable(dpy)) {
-			DPMSEnable(dpy);
-			DPMSForceLevel(dpy, DPMSModeOff);
-		}
 		if(ev.type == KeyPress) {
 			buf[0] = 0;
 			num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
@@ -169,6 +171,9 @@ main(int argc, char **argv) {
 				break;
 			}
 		}
+	}
+	if(DPMSCapable(dpy)) { /* restore DPMS settings */
+		DPMSSetTimeouts(dpy, standby, suspend, off);
 	}
 	XUngrabPointer(dpy, CurrentTime);
 	XFreePixmap(dpy, pmap);
