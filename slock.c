@@ -228,6 +228,9 @@ main(int argc, char **argv) {
 	else if(argc != 1)
 		usage();
 
+	if(!getpwuid(getuid()))
+		die("no passwd entry for you");
+
 #ifndef HAVE_BSD_AUTH
 	pws = get_password();
 #endif
