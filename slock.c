@@ -46,7 +46,7 @@ die(const char *errstr, ...) {
 
 #ifndef HAVE_BSD_AUTH
 static const char *
-get_password(void) { /* only run as root */
+getpw(void) { /* only run as root */
 	const char *rval;
 	struct passwd *pw;
 
@@ -74,9 +74,9 @@ get_password(void) { /* only run as root */
 
 static void
 #ifdef HAVE_BSD_AUTH
-read_password(Display *dpy)
+readpw(Display *dpy)
 #else
-read_password(Display *dpy, const char *pws)
+readpw(Display *dpy, const char *pws)
 #endif
 {
 	char buf[32], passwd[256];
@@ -213,6 +213,11 @@ usage(void) {
 	exit(EXIT_FAILURE);
 }
 
+static int
+xerrordummy(Display *dpy, XErrorEvent *ee) {
+	return 0;
+}
+
 int
 main(int argc, char **argv) {
 #ifndef HAVE_BSD_AUTH
@@ -224,7 +229,7 @@ main(int argc, char **argv) {
 	struct st_lock **locks;
 
 	if((argc == 2) && !strcmp("-v", argv[1]))
-		die("slock-%s, © 2006-2008 Anselm R Garbe", VERSION);
+		die("slock-%s, © 2006-2012 Anselm R Garbe", VERSION);
 	else if(argc != 1)
 		usage();
 
@@ -232,12 +237,13 @@ main(int argc, char **argv) {
 		die("no passwd entry for you");
 
 #ifndef HAVE_BSD_AUTH
-	pws = get_password();
+	pws = getpw();
 #endif
 
 	if(!(dpy = XOpenDisplay(0)))
 		die("cannot open display");
-
+	/* prevent default error handler to take over */
+	XSetErrorHandler(xerrordummy);
 	/* Get the number of screens in display "dpy" and blank them all. */
 	nscreens = ScreenCount(dpy);
 	locks = malloc(sizeof(struct st_lock *) * nscreens);
@@ -251,9 +257,9 @@ main(int argc, char **argv) {
 
 	/* Everything is now blank. Now wait for the correct password. */
 #ifdef HAVE_BSD_AUTH
-	read_password(dpy);
+	readpw(dpy);
 #else
-	read_password(dpy, pws);
+	readpw(dpy, pws);
 #endif
 
 	/* Password ok, unlock everything and quit. */
