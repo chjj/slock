@@ -50,9 +50,9 @@ getpw(void) { /* only run as root */
 	const char *rval;
 	struct passwd *pw;
 
-	if(geteuid() != 0)
-		die("cannot retrieve password entry (make sure to suid slock)");
 	pw = getpwuid(getuid());
+	if(!pw)
+		die("cannot retrieve password entry (make sure to suid or sgid slock)");
 	endpwent();
 	rval =  pw->pw_passwd;
 
@@ -60,6 +60,8 @@ getpw(void) { /* only run as root */
 	{
 		struct spwd *sp;
 		sp = getspnam(getenv("USER"));
+		if(!sp)
+			die("slock: cannot retrieve shadow entry (make sure to suid or sgid slock)\n");
 		endspent();
 		rval = sp->sp_pwdp;
 	}
