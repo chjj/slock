@@ -22,25 +22,23 @@
 #include <bsd_auth.h>
 #endif
 
-struct st_lock {
+typedef struct {
 	int screen;
-	Window root, w;
+	Window root, win;
 	Pixmap pmap;
-};
+} Lock;
 
-extern const char *__progname;
+static Lock **locks;
+static int nscreens;
+static Bool running = True;
 
 static void
 die(const char *errstr, ...) {
 	va_list ap;
 
-	fprintf(stderr, "%s: ", __progname);
 	va_start(ap, errstr);
 	vfprintf(stderr, errstr, ap);
 	va_end(ap);
-	fprintf(stderr, "\n");
-	fflush(stderr);
-
 	exit(EXIT_FAILURE);
 }
 
@@ -52,7 +50,7 @@ getpw(void) { /* only run as root */
 
 	pw = getpwuid(getuid());
 	if(!pw)
-		die("cannot retrieve password entry (make sure to suid or sgid slock)");
+		die("slock: cannot retrieve password entry (make sure to suid or sgid slock)");
 	endpwent();
 	rval =  pw->pw_passwd;
 
@@ -69,7 +67,7 @@ getpw(void) { /* only run as root */
 
 	/* drop privileges */
 	if(setgid(pw->pw_gid) < 0 || setuid(pw->pw_uid) < 0)
-		die("cannot drop privileges");
+		die("slock: cannot drop privileges");
 	return rval;
 }
 #endif
@@ -82,10 +80,8 @@ readpw(Display *dpy, const char *pws)
 #endif
 {
 	char buf[32], passwd[256];
-	int num;
-
+	int num, screen;
 	unsigned int len;
-	Bool running = True;
 	KeySym ksym;
 	XEvent ev;
 
@@ -96,7 +92,6 @@ readpw(Display *dpy, const char *pws)
 	 * had been removed and you can set it with "xset" or some other
 	 * utility. This way the user can easily set a customized DPMS
 	 * timeout. */
-
 	while(running && !XNextEvent(dpy, &ev)) {
 		if(ev.type == KeyPress) {
 			buf[0] = 0;
@@ -119,7 +114,7 @@ readpw(Display *dpy, const char *pws)
 #else
 				running = strcmp(crypt(passwd, pws), pws);
 #endif
-				if (running != 0)
+				if(running != False)
 					XBell(dpy, 100);
 				len = 0;
 				break;
@@ -138,36 +133,37 @@ readpw(Display *dpy, const char *pws)
 				break;
 			}
 		}
+		else for(screen = 0; screen < nscreens; screen++)
+			XMapRaised(dpy, locks[screen]->win);
 	}
 }
 
 static void
-unlockscreen(Display *dpy, struct st_lock *lock) {
-	if (dpy == NULL || lock == NULL)
+unlockscreen(Display *dpy, Lock *lock) {
+	if(dpy == NULL || lock == NULL)
 		return;
 
 	XUngrabPointer(dpy, CurrentTime);
 	XFreePixmap(dpy, lock->pmap);
-	XDestroyWindow(dpy, lock->w);
+	XDestroyWindow(dpy, lock->win);
 
 	free(lock);
 }
 
-static struct st_lock *
+static Lock *
 lockscreen(Display *dpy, int screen) {
 	char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
 	unsigned int len;
-	struct st_lock *lock;
-	Bool running = True;
+	Lock *lock;
 	XColor black, dummy;
 	XSetWindowAttributes wa;
 	Cursor invisible;
 
-	if (dpy == NULL || screen < 0)
+	if(dpy == NULL || screen < 0)
 		return NULL;
 
-	lock = malloc(sizeof(struct st_lock));
-	if (lock == NULL)
+	lock = malloc(sizeof(Lock));
+	if(lock == NULL)
 		return NULL;
 
 	lock->screen = screen;
@@ -177,21 +173,21 @@ lockscreen(Display *dpy, int screen) {
 	/* init */
 	wa.override_redirect = 1;
 	wa.background_pixel = BlackPixel(dpy, lock->screen);
-	lock->w = XCreateWindow(dpy, lock->root, 0, 0, DisplayWidth(dpy, lock->screen), DisplayHeight(dpy, lock->screen),
+	lock->win = XCreateWindow(dpy, lock->root, 0, 0, DisplayWidth(dpy, lock->screen), DisplayHeight(dpy, lock->screen),
 			0, DefaultDepth(dpy, lock->screen), CopyFromParent,
 			DefaultVisual(dpy, lock->screen), CWOverrideRedirect | CWBackPixel, &wa);
 	XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen), "black", &black, &dummy);
-	lock->pmap = XCreateBitmapFromData(dpy, lock->w, curs, 8, 8);
+	lock->pmap = XCreateBitmapFromData(dpy, lock->win, curs, 8, 8);
 	invisible = XCreatePixmapCursor(dpy, lock->pmap, lock->pmap, &black, &black, 0, 0);
-	XDefineCursor(dpy, lock->w, invisible);
-	XMapRaised(dpy, lock->w);
+	XDefineCursor(dpy, lock->win, invisible);
+	XMapRaised(dpy, lock->win);
 	for(len = 1000; len; len--) {
 		if(XGrabPointer(dpy, lock->root, False, ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
 			GrabModeAsync, GrabModeAsync, None, invisible, CurrentTime) == GrabSuccess)
 			break;
 		usleep(1000);
 	}
-	if((running = running && (len > 0))) {
+	if(running && (len > 0)) {
 		for(len = 1000; len; len--) {
 			if(XGrabKeyboard(dpy, lock->root, True, GrabModeAsync, GrabModeAsync, CurrentTime)
 				== GrabSuccess)
@@ -201,7 +197,7 @@ lockscreen(Display *dpy, int screen) {
 		running = (len > 0);
 	}
 
-	if (!running) {
+	if(!running) {
 		unlockscreen(dpy, lock);
 		lock = NULL;
 	}
@@ -211,13 +207,8 @@ lockscreen(Display *dpy, int screen) {
 
 static void
 usage(void) {
-	fprintf(stderr, "usage: %s -v", __progname);
+	fprintf(stderr, "usage: slock [-v]");
 	exit(EXIT_FAILURE);
-}
-
-static int
-xerrordummy(Display *dpy, XErrorEvent *ee) {
-	return 0;
 }
 
 int
@@ -226,9 +217,7 @@ main(int argc, char **argv) {
 	const char *pws;
 #endif
 	Display *dpy;
-	int nscreens, screen;
-
-	struct st_lock **locks;
+	int screen;
 
 	if((argc == 2) && !strcmp("-v", argv[1]))
 		die("slock-%s, © 2006-2012 Anselm R Garbe", VERSION);
@@ -236,25 +225,21 @@ main(int argc, char **argv) {
 		usage();
 
 	if(!getpwuid(getuid()))
-		die("no passwd entry for you");
+		die("slock: no passwd entry for you");
 
 #ifndef HAVE_BSD_AUTH
 	pws = getpw();
 #endif
 
 	if(!(dpy = XOpenDisplay(0)))
-		die("cannot open display");
-	/* prevent default error handler to take over */
-	XSetErrorHandler(xerrordummy);
+		die("slock: cannot open display");
 	/* Get the number of screens in display "dpy" and blank them all. */
 	nscreens = ScreenCount(dpy);
-	locks = malloc(sizeof(struct st_lock *) * nscreens);
-	if (locks == NULL)
-		die("malloc: %s", strerror(errno));
-
-	for (screen = 0; screen < nscreens; screen++)
+	locks = malloc(sizeof(Lock *) * nscreens);
+	if(locks == NULL)
+		die("slock: malloc: %s", strerror(errno));
+	for(screen = 0; screen < nscreens; screen++)
 		locks[screen] = lockscreen(dpy, screen);
-
 	XSync(dpy, False);
 
 	/* Everything is now blank. Now wait for the correct password. */
@@ -265,11 +250,10 @@ main(int argc, char **argv) {
 #endif
 
 	/* Password ok, unlock everything and quit. */
-	for (screen = 0; screen < nscreens; screen++)
+	for(screen = 0; screen < nscreens; screen++)
 		unlockscreen(dpy, locks[screen]);
 
 	free(locks);
-
 	XCloseDisplay(dpy);
 
 	return 0;
