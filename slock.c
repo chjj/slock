@@ -134,7 +134,7 @@ readpw(Display *dpy, const char *pws)
 			}
 		}
 		else for(screen = 0; screen < nscreens; screen++)
-			XMapRaised(dpy, locks[screen]->win);
+			XRaiseWindow(dpy, locks[screen]->win);
 	}
 }
 
