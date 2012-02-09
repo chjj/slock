@@ -207,7 +207,7 @@ lockscreen(Display *dpy, int screen) {
 
 static void
 usage(void) {
-	fprintf(stderr, "usage: slock [-v]");
+	fprintf(stderr, "usage: slock [-v]\n");
 	exit(EXIT_FAILURE);
 }
 
@@ -220,7 +220,7 @@ main(int argc, char **argv) {
 	int screen;
 
 	if((argc == 2) && !strcmp("-v", argv[1]))
-		die("slock-%s, © 2006-2012 Anselm R Garbe", VERSION);
+		die("slock-%s, © 2006-2012 Anselm R Garbe\n", VERSION);
 	else if(argc != 1)
 		usage();
 
