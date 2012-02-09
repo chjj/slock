@@ -201,6 +201,8 @@ lockscreen(Display *dpy, int screen) {
 		unlockscreen(dpy, lock);
 		lock = NULL;
 	}
+	else 
+		XSelectInput(dpy, lock->root, SubstructureNotifyMask);
 
 	return lock;
 }
