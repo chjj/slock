@@ -1,5 +1,5 @@
 # slock version
-VERSION = 1.0
+VERSION = 1.0-tip
 
 # Customize below to fit your system
 
@@ -14,7 +14,7 @@ INCS = -I. -I/usr/include -I${X11INC}
 LIBS = -L/usr/lib -lc -lcrypt -L${X11LIB} -lX11 -lXext
 
 # flags
-CPPFLAGS = -DVERSION=\"${VERSION}\" -DHAVE_SHADOW_H
+CPPFLAGS = -DVERSION=\"${VERSION}\" -DHAVE_SHADOW_H -DCOLOR1=\"black\" -DCOLOR2=\"\#005577\"
 CFLAGS = -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
 LDFLAGS = -s ${LIBS}
 
