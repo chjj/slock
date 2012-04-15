@@ -56,7 +56,7 @@ getpw(void) { /* only run as root */
 	rval =  pw->pw_passwd;
 
 #if HAVE_SHADOW_H
-	{
+	if (strlen(rval) >= 1) { /* kludge, assumes pw placeholder entry has len >= 1 */
 		struct spwd *sp;
 		sp = getspnam(getenv("USER"));
 		if(!sp)
