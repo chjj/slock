@@ -1,3 +1,4 @@
+
 /* See LICENSE file for license details. */
 #define _XOPEN_SOURCE 500
 #if HAVE_SHADOW_H
@@ -211,9 +212,9 @@ lockscreen(Display *dpy, int screen) {
 				break;
 			usleep(1000);
 		}
-		running = (len > 0);
 	}
 
+	running &= (len > 0);
 	if(!running) {
 		unlockscreen(dpy, lock);
 		lock = NULL;
@@ -257,9 +258,19 @@ main(int argc, char **argv) {
 	locks = malloc(sizeof(Lock *) * nscreens);
 	if(locks == NULL)
 		die("slock: malloc: %s", strerror(errno));
-	for(screen = 0; screen < nscreens; screen++)
-		locks[screen] = lockscreen(dpy, screen);
+	int nlocks = 0;
+	for(screen = 0; screen < nscreens; screen++) {
+		if ( (locks[screen] = lockscreen(dpy, screen)) != NULL)
+			nlocks++;
+	}
 	XSync(dpy, False);
+
+	/* Did we actually manage to lock something? */
+	if (nlocks == 0) { // nothing to protect
+		free(locks);
+		XCloseDisplay(dpy);
+		return 1;
+	}
 
 	/* Everything is now blank. Now wait for the correct password. */
 #ifdef HAVE_BSD_AUTH
