@@ -44,6 +44,21 @@ die(const char *errstr, ...) {
 	exit(EXIT_FAILURE);
 }
 
+#ifdef __linux__
+#include <fcntl.h>
+
+static void
+dontkillme(void) {
+	int fd;
+
+	fd = open("/proc/self/oom_score_adj", O_WRONLY);
+	if (fd < 0 && errno == ENOENT)
+		return;
+	if (fd < 0 || write(fd, "-1000\n", 6) != 6 || close(fd) != 0)
+		die("cannot disable the out-of-memory killer for this process\n");
+}
+#endif
+
 #ifndef HAVE_BSD_AUTH
 static const char *
 getpw(void) { /* only run as root */
@@ -52,7 +67,7 @@ getpw(void) { /* only run as root */
 
 	pw = getpwuid(getuid());
 	if(!pw)
-		die("slock: cannot retrieve password entry (make sure to suid or sgid slock)");
+		die("slock: cannot retrieve password entry (make sure to suid or sgid slock)\n");
 	endpwent();
 	rval =  pw->pw_passwd;
 
@@ -68,8 +83,9 @@ getpw(void) { /* only run as root */
 #endif
 
 	/* drop privileges */
-	if(setgid(pw->pw_gid) < 0 || setuid(pw->pw_uid) < 0)
-		die("slock: cannot drop privileges");
+	if (geteuid() == 0
+	   && ((getegid() != pw->pw_gid && setgid(pw->pw_gid) < 0) || setuid(pw->pw_uid) < 0))
+		die("slock: cannot drop privileges\n");
 	return rval;
 }
 #endif
@@ -114,9 +130,9 @@ readpw(Display *dpy, const char *pws)
 #ifdef HAVE_BSD_AUTH
 				running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd);
 #else
-				running = strcmp(crypt(passwd, pws), pws);
+				running = !!strcmp(crypt(passwd, pws), pws);
 #endif
-				if(running != False)
+				if(running)
 					XBell(dpy, 100);
 				len = 0;
 				break;
@@ -244,20 +260,24 @@ main(int argc, char **argv) {
 	else if(argc != 1)
 		usage();
 
+#ifdef __linux__
+	dontkillme();
+#endif
+
 	if(!getpwuid(getuid()))
-		die("slock: no passwd entry for you");
+		die("slock: no passwd entry for you\n");
 
 #ifndef HAVE_BSD_AUTH
 	pws = getpw();
 #endif
 
 	if(!(dpy = XOpenDisplay(0)))
-		die("slock: cannot open display");
+		die("slock: cannot open display\n");
 	/* Get the number of screens in display "dpy" and blank them all. */
 	nscreens = ScreenCount(dpy);
 	locks = malloc(sizeof(Lock *) * nscreens);
 	if(locks == NULL)
-		die("slock: malloc: %s", strerror(errno));
+		die("slock: malloc: %s\n", strerror(errno));
 	int nlocks = 0;
 	for(screen = 0; screen < nscreens; screen++) {
 		if ( (locks[screen] = lockscreen(dpy, screen)) != NULL)
