@@ -65,8 +65,11 @@ getpw(void) { /* only run as root */
 	const char *rval;
 	struct passwd *pw;
 
+	errno = 0;
 	pw = getpwuid(getuid());
-	if(!pw)
+	if (errno)
+		die("slock: getpwuid: %s\n", strerror(errno));
+	else if (!pw)
 		die("slock: cannot retrieve password entry (make sure to suid or sgid slock)\n");
 	endpwent();
 	rval =  pw->pw_passwd;
