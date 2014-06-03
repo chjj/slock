@@ -75,7 +75,7 @@ getpw(void) { /* only run as root */
 	rval =  pw->pw_passwd;
 
 #if HAVE_SHADOW_H
-	if (strlen(rval) >= 1) { /* kludge, assumes pw placeholder entry has len >= 1 */
+	if (rval[0] == 'x' && rval[1] == '\0') {
 		struct spwd *sp;
 		sp = getspnam(getenv("USER"));
 		if(!sp)
@@ -147,7 +147,7 @@ readpw(Display *dpy, const char *pws)
 					--len;
 				break;
 			default:
-				if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) { 
+				if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
 					memcpy(passwd + len, buf, num);
 					len += num;
 				}
