@@ -24,6 +24,7 @@
 #endif
 
 char *g_pw = NULL;
+int lock_tries = 0;
 
 typedef struct {
 	int screen;
@@ -68,7 +69,7 @@ getpw(void) { /* only run as root */
 	const char *rval;
 	struct passwd *pw;
 
-	if (g_pw)
+	if(g_pw)
 		return g_pw;
 
 	errno = 0;
@@ -141,14 +142,19 @@ readpw(Display *dpy, const char *pws)
 #ifdef HAVE_BSD_AUTH
 				running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd);
 #else
-				if (g_pw) {
+				if(g_pw) {
 					running = !!strcmp(passwd, g_pw);
 				} else {
 					running = !!strcmp(crypt(passwd, pws), pws);
 				}
 #endif
-				if(running)
+				if(running) {
 					XBell(dpy, 100);
+					if(++lock_tries > 2) {
+						// http://soundbible.com/1819-Police.html
+						system("aplay /home/chjj/police.wav");
+					}
+				}
 				len = 0;
 				break;
 			case XK_Escape:
