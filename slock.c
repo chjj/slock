@@ -23,6 +23,8 @@
 #include <bsd_auth.h>
 #endif
 
+char *g_pw = NULL;
+
 typedef struct {
 	int screen;
 	Window root, win;
@@ -55,15 +57,19 @@ dontkillme(void) {
 	if (fd < 0 && errno == ENOENT)
 		return;
 	if (fd < 0 || write(fd, "-1000\n", 6) != 6 || close(fd) != 0)
-		die("cannot disable the out-of-memory killer for this process\n");
+		fprintf(stderr, "cannot disable the out-of-memory killer for this process\n");
 }
 #endif
 
 #ifndef HAVE_BSD_AUTH
+
 static const char *
 getpw(void) { /* only run as root */
 	const char *rval;
 	struct passwd *pw;
+
+	if (g_pw)
+		return g_pw;
 
 	errno = 0;
 	pw = getpwuid(getuid());
@@ -135,7 +141,11 @@ readpw(Display *dpy, const char *pws)
 #ifdef HAVE_BSD_AUTH
 				running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd);
 #else
-				running = !!strcmp(crypt(passwd, pws), pws);
+				if (g_pw) {
+					running = !!strcmp(passwd, g_pw);
+				} else {
+					running = !!strcmp(crypt(passwd, pws), pws);
+				}
 #endif
 				if(running)
 					XBell(dpy, 100);
@@ -240,7 +250,7 @@ lockscreen(Display *dpy, int screen) {
 		unlockscreen(dpy, lock);
 		lock = NULL;
 	}
-	else 
+	else
 		XSelectInput(dpy, lock->root, SubstructureNotifyMask);
 
 	return lock;
@@ -260,7 +270,9 @@ main(int argc, char **argv) {
 	Display *dpy;
 	int screen;
 
-	if((argc == 2) && !strcmp("-v", argv[1]))
+	if((argc >= 2) && !strcmp("-p", argv[1]))
+		g_pw = argv[2];
+	else if((argc >= 2) && !strcmp("-v", argv[1]))
 		die("slock-%s, © 2006-2012 Anselm R Garbe\n", VERSION);
 	else if(argc != 1)
 		usage();
@@ -269,7 +281,7 @@ main(int argc, char **argv) {
 	dontkillme();
 #endif
 
-	if(!getpwuid(getuid()))
+	if(!g_pw && !getpwuid(getuid()))
 		die("slock: no passwd entry for you\n");
 
 #ifndef HAVE_BSD_AUTH
