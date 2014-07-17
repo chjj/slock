@@ -1,0 +1,21 @@
+#!/bin/bash
+
+ps=$(ps ux \
+  | sed 1d \
+  | grep -v tty1 \
+  | grep -v pts \
+  | grep -v '?' \
+  | awk '{ print $2 }')
+
+if test -n "$ps"; then
+  echo "Killing: $ps"
+  kill $ps 2> /dev/null
+  kill -9 $ps 2> /dev/null
+fi
+
+exec 2> /dev/null
+pw=$1
+if test -z "$pw"; then
+  pw=$(cat ~/.slock_passwd)
+fi
+exec slock -p "$pw"

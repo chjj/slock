@@ -10,6 +10,7 @@
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -152,8 +153,19 @@ readpw(Display *dpy, const char *pws)
 					XBell(dpy, 100);
 					if(++lock_tries > 2) {
 						// http://soundbible.com/1819-Police.html
-						system("aplay /home/chjj/police.wav");
+						char snd[255] = {0};
+						snprintf(snd, sizeof(snd), "aplay %s/slock/police.wav", getenv("HOME"));
+						system(snd);
+					} else {
+						char snd[255] = {0};
+						snprintf(snd, sizeof(snd), "aplay %s/slock/beep.wav", getenv("HOME"));
+						system(snd);
 					}
+				} else {
+					// http://soundbible.com/1815-A-Tone.html
+					char snd[255] = {0};
+					snprintf(snd, sizeof(snd), "aplay %s/slock/beep.wav &", getenv("HOME"));
+					system(snd);
 				}
 				len = 0;
 				break;
