@@ -24,6 +24,8 @@
 #include <bsd_auth.h>
 #endif
 
+#define SLOCK_SHUTDOWN 1
+
 char *g_pw = NULL;
 int lock_tries = 0;
 
@@ -151,7 +153,18 @@ readpw(Display *dpy, const char *pws)
 #endif
 				if(running) {
 					XBell(dpy, 100);
-					if(++lock_tries > 2) {
+					lock_tries++;
+#if SLOCK_SHUTDOWN
+					if(lock_tries > 5) {
+						// Needs sudo privileges for systemctl
+						char *args[] = { "sudo", "systemctl", "poweroff", NULL };
+						execvp("sudo", args);
+						// if we failed, simply resume
+						len = 0;
+						break;
+					}
+#endif
+					if(lock_tries > 2) {
 						// http://soundbible.com/1819-Police.html
 						char snd[255] = {0};
 						snprintf(snd, sizeof(snd), "aplay %s/slock/police.wav", getenv("HOME"));
