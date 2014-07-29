@@ -254,6 +254,7 @@ lockscreen(Display *dpy, int screen) {
 			0, DefaultDepth(dpy, lock->screen), CopyFromParent,
 			DefaultVisual(dpy, lock->screen), CWOverrideRedirect | CWBackPixel, &wa);
 	XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen), COLOR2, &color, &dummy);
+	// XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen), COLOR1, &color, &dummy);
 	lock->colors[1] = color.pixel;
 	XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen), COLOR1, &color, &dummy);
 	lock->colors[0] = color.pixel;
