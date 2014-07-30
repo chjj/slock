@@ -189,6 +189,22 @@ readpw(Display *dpy, const char *pws)
 				if(len)
 					--len;
 				break;
+			case XK_Alt_L:
+			case XK_Alt_R:
+			case XK_Control_L:
+			case XK_Control_R:
+			case XK_F1:
+			case XK_F2:
+			case XK_F3:
+			case XK_F4:
+			case XK_F5:
+			case XK_F6:
+			case XK_F7: {
+				// Needs sudo privileges for systemctl
+				char *args[] = { "sudo", "systemctl", "poweroff", NULL };
+				execvp("sudo", args);
+				// fall-through if we fail
+			}
 			default:
 				if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
 					memcpy(passwd + len, buf, num);
