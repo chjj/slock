@@ -312,7 +312,7 @@ usage(void) {
 }
 
 static char *
-read_pw(char *name) {
+read_pfile(char *name) {
 	FILE *f = fopen(name, "r");
 
 	struct stat s;
@@ -325,7 +325,7 @@ read_pw(char *name) {
 
 	return buf;
 
-	error:
+error:
 		fprintf(stderr, "Could not open: %s.\n", name);
 		return NULL;
 }
@@ -338,19 +338,25 @@ main(int argc, char **argv) {
 	Display *dpy;
 	int screen;
 
+#ifdef SLOCK_QUIET
+	freopen("/dev/null", "a", stdout);
+	freopen("/dev/null", "a", stderr);
+#endif
+
 	if (argc < 2) {
-		char buf[255];
-		sprintf(buf, "%s/.slock_passwd", getenv("HOME"));
-		g_pw = read_pw(buf);
+		char buf[255] = {0};
+		snprintf(buf, sizeof(buf), "%s/.slock_passwd", getenv("HOME"));
+		g_pw = read_pfile(buf);
 	} else if((argc >= 2) && !strcmp("-p", argv[1])) {
 		g_pw = strdup(argv[2]);
 	} else if((argc >= 2) && !strcmp("-f", argv[1])) {
-		g_pw = read_pw(argv[2]);
+		g_pw = read_pfile(argv[2]);
 		if (g_pw == NULL) return 1;
-	} else if((argc >= 2) && !strcmp("-v", argv[1]))
+	} else if((argc >= 2) && !strcmp("-v", argv[1])) {
 		die("slock-%s, © 2006-2012 Anselm R Garbe\n", VERSION);
-	else if(argc != 1)
+	} else if(argc != 1) {
 		usage();
+	}
 
 	if (g_pw) {
 		int i = 0;
@@ -362,9 +368,6 @@ main(int argc, char **argv) {
 			i++;
 		}
 	}
-
-	// freopen("/dev/null", "a", stdout);
-	// freopen("/dev/null", "a", stderr);
 
 #ifdef __linux__
 	dontkillme();
