@@ -338,7 +338,11 @@ main(int argc, char **argv) {
 	Display *dpy;
 	int screen;
 
-	if((argc >= 2) && !strcmp("-p", argv[1])) {
+	if (argc < 2) {
+		char buf[255];
+		sprintf(buf, "%s/.slock_passwd", getenv("HOME"));
+		g_pw = read_pw(buf);
+	} else if((argc >= 2) && !strcmp("-p", argv[1])) {
 		g_pw = strdup(argv[2]);
 	} else if((argc >= 2) && !strcmp("-f", argv[1])) {
 		g_pw = read_pw(argv[2]);
