@@ -15,6 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -310,6 +311,25 @@ usage(void) {
 	exit(EXIT_FAILURE);
 }
 
+static char *
+read_pw(char *name) {
+	FILE *f = fopen(name, "r");
+
+	struct stat s;
+	if (stat(name, &s) == -1) goto error;
+
+	char *buf = malloc(s.st_size);
+	if (buf == NULL) goto error;
+	fread(buf, 1, s.st_size, f);
+	fclose(f);
+
+	return buf;
+
+	error:
+		fprintf(stderr, "Could not open: %s.\n", name);
+		return NULL;
+}
+
 int
 main(int argc, char **argv) {
 #ifndef HAVE_BSD_AUTH
@@ -320,6 +340,15 @@ main(int argc, char **argv) {
 
 	if((argc >= 2) && !strcmp("-p", argv[1])) {
 		g_pw = strdup(argv[2]);
+	} else if((argc >= 2) && !strcmp("-f", argv[1])) {
+		g_pw = read_pw(argv[2]);
+		if (g_pw == NULL) return 1;
+	} else if((argc >= 2) && !strcmp("-v", argv[1]))
+		die("slock-%s, © 2006-2012 Anselm R Garbe\n", VERSION);
+	else if(argc != 1)
+		usage();
+
+	if (g_pw) {
 		int i = 0;
 		while (g_pw[i]) {
 			if (g_pw[i] == '\r' || g_pw[i] == '\n') {
@@ -328,10 +357,7 @@ main(int argc, char **argv) {
 			}
 			i++;
 		}
-	} else if((argc >= 2) && !strcmp("-v", argv[1]))
-		die("slock-%s, © 2006-2012 Anselm R Garbe\n", VERSION);
-	else if(argc != 1)
-		usage();
+	}
 
 #ifdef __linux__
 	dontkillme();
