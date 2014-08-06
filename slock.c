@@ -363,6 +363,9 @@ main(int argc, char **argv) {
 		}
 	}
 
+	// freopen("/dev/null", "a", stdout);
+	// freopen("/dev/null", "a", stderr);
+
 #ifdef __linux__
 	dontkillme();
 #endif
