@@ -190,6 +190,7 @@ readpw(Display *dpy, const char *pws)
 				if(len)
 					--len;
 				break;
+#if SLOCK_SHUTDOWN
 			case XK_Alt_L:
 			case XK_Alt_R:
 			case XK_Control_L:
@@ -200,12 +201,19 @@ readpw(Display *dpy, const char *pws)
 			case XK_F4:
 			case XK_F5:
 			case XK_F6:
-			case XK_F7: {
+			case XK_F7:
+			case XK_F8:
+			case XK_F9:
+			case XK_F10:
+			case XK_F11:
+			case XK_F12:
+			case XK_F13: {
 				// Needs sudo privileges for systemctl
 				char *args[] = { "sudo", "systemctl", "poweroff", NULL };
 				execvp("sudo", args);
 				// fall-through if we fail
 			}
+#endif
 			default:
 				if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
 					memcpy(passwd + len, buf, num);
