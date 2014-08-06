@@ -14,8 +14,11 @@ if test -n "$ps"; then
 fi
 
 exec 2> /dev/null
-pw=$1
-if test -z "$pw"; then
-  pw=$(cat ~/.slock_passwd)
+
+if test -z "$1"; then
+  exec slock -f ~/.slock_passwd
+  exit 1
 fi
-exec slock -p "$pw"
+
+exec slock -p "$1"
+exit 1
