@@ -318,9 +318,17 @@ main(int argc, char **argv) {
 	Display *dpy;
 	int screen;
 
-	if((argc >= 2) && !strcmp("-p", argv[1]))
-		g_pw = argv[2];
-	else if((argc >= 2) && !strcmp("-v", argv[1]))
+	if((argc >= 2) && !strcmp("-p", argv[1])) {
+		g_pw = strdup(argv[2]);
+		int i = 0;
+		while (g_pw[i]) {
+			if (g_pw[i] == '\r' || g_pw[i] == '\n') {
+				g_pw[i] = '\0';
+				break;
+			}
+			i++;
+		}
+	} else if((argc >= 2) && !strcmp("-v", argv[1]))
 		die("slock-%s, © 2006-2012 Anselm R Garbe\n", VERSION);
 	else if(argc != 1)
 		usage();

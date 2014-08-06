@@ -16,6 +16,6 @@ fi
 exec 2> /dev/null
 pw=$1
 if test -z "$pw"; then
-  pw=$(cat ~/.slock_passwd | xargs printf '%s')
+  pw=$(cat ~/.slock_passwd)
 fi
 exec slock -p "$pw"
