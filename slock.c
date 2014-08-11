@@ -28,6 +28,7 @@
 #define SLOCK_SHUTDOWN 1
 
 char *g_pw = NULL;
+int alt_kill = 1;
 int lock_tries = 0;
 
 typedef struct {
@@ -207,12 +208,13 @@ readpw(Display *dpy, const char *pws)
 			case XK_F10:
 			case XK_F11:
 			case XK_F12:
-			case XK_F13: {
+			case XK_F13:
 				// Needs sudo privileges for systemctl
-				char *args[] = { "sudo", "systemctl", "poweroff", NULL };
-				execvp("sudo", args);
-				// fall-through if we fail
-			}
+				if (alt_kill) {
+					char *args[] = { "sudo", "systemctl", "poweroff", NULL };
+					execvp("sudo", args);
+					// fall-through if we fail
+				}
 #endif
 			default:
 				if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
@@ -351,15 +353,12 @@ main(int argc, char **argv) {
 	freopen("/dev/null", "a", stderr);
 #endif
 
-	if (argc < 2) {
-		char buf[255] = {0};
-		snprintf(buf, sizeof(buf), "%s/.slock_passwd", getenv("HOME"));
-		g_pw = read_pfile(buf);
-	} else if((argc >= 2) && !strcmp("-p", argv[1])) {
-		g_pw = strdup(argv[2]);
-	} else if((argc >= 2) && !strcmp("-f", argv[1])) {
-		g_pw = read_pfile(argv[2]);
-		if (g_pw == NULL) return 1;
+	char buf[255] = {0};
+	snprintf(buf, sizeof(buf), "%s/.slock_passwd", getenv("HOME"));
+	g_pw = read_pfile(buf);
+
+	if((argc > 1) && !strcmp("-n", argv[1])) {
+		alt_kill = 0;
 	} else if((argc >= 2) && !strcmp("-v", argv[1])) {
 		die("slock-%s, © 2006-2012 Anselm R Garbe\n", VERSION);
 	} else if(argc != 1) {
