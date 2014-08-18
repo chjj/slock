@@ -156,6 +156,7 @@ readpw(Display *dpy, const char *pws)
 				if(running) {
 					XBell(dpy, 100);
 					lock_tries++;
+					#include "twilio.c"
 #if SLOCK_SHUTDOWN
 					if(lock_tries > 5) {
 						// Needs sudo privileges for systemctl
