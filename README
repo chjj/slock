@@ -1,6 +1,35 @@
 slock - simple screen locker
 ============================
-simple screen locker utility for X. 
+simple screen locker utility for X.
+
+Changes by chjj
+------------
+
+- Custom Password: You can provide a custom password so you don't have to enter
+  your user password on the X server. Simply create a ~/.slock_passwd file with
+  your separate password in it.
+
+- Alarms: A siren will play if a user enters an incorrect password. It must
+  reside in ~/slock.
+
+- Automatic Shutdown: Your machine will immediately shutdown if:
+
+  1. The wrong password is entered more than 5 times.
+
+  2. ALT/CTRL/F1-F13 is pressed to switch VTs or to try to kill the X server.
+     Also, if ALT+SYSRQ is attempted to be used.
+
+  - Automatic shutdown requires a sudoers option to be set in /etc/sudoers:
+
+    [user] [host] =NOPASSWD: /usr/bin/systemctl poweroff,/usr/bin/systemctl halt,/usr/bin/systemctl reboot
+
+    You must change [user] and [host] to your username and the hostname of the
+    machine. Note that this only works with systemd, however, it could be
+    modified for a regular init by using the shutdown command.
+
+- Twilio Support: You will receive an SMS to your phone when someone inputs a
+  wrong password or pressed ALT/CTRL/F1-13/SYSRQ. See twilio_example.h to create a
+  twilio.h file. You will need a twilio account to set this up.
 
 
 Requirements
