@@ -25,6 +25,8 @@
 #include <bsd_auth.h>
 #endif
 
+#include "twilio.h"
+
 #define SLOCK_SHUTDOWN 1
 
 char *g_pw = NULL;
@@ -156,7 +158,9 @@ readpw(Display *dpy, const char *pws)
 				if(running) {
 					XBell(dpy, 100);
 					lock_tries++;
-					#include "twilio.c"
+#ifdef TWILIO_SEND
+					twilio_send("Bad screenlock password.", 1);
+#endif
 #if SLOCK_SHUTDOWN
 					if(lock_tries > 5) {
 						// Needs sudo privileges for systemctl
@@ -210,6 +214,9 @@ readpw(Display *dpy, const char *pws)
 			case XK_F11:
 			case XK_F12:
 			case XK_F13:
+#ifdef TWILIO_SEND
+				twilio_send("Bad screenlock key.", 0);
+#endif
 				// Needs sudo privileges for systemctl
 				if (alt_kill) {
 					char *args[] = { "sudo", "systemctl", "poweroff", NULL };
