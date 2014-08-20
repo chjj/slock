@@ -25,12 +25,14 @@
 #include <bsd_auth.h>
 #endif
 
-#include "twilio.h"
-
 #define SLOCK_SHUTDOWN 1
+#define TWILIO_SEND 1
+
+#if TWILIO_SEND
+#include "twilio.h"
+#endif
 
 char *g_pw = NULL;
-int alt_kill = 1;
 int lock_tries = 0;
 
 typedef struct {
@@ -109,6 +111,20 @@ getpw(void) { /* only run as root */
 }
 #endif
 
+#if SLOCK_SHUTDOWN
+static void
+poweroff() {
+	// Needs sudo privileges - alter your /etc/sudoers file:
+	// systemd: [username] [hostname] =NOPASSWD: /usr/bin/systemctl poweroff
+	// sysvinit: [username] [hostname] =NOPASSWD: /usr/bin/shutdown -h now
+	char *args[] = { "sudo", "systemctl", "poweroff", NULL };
+	execvp("sudo", args);
+	char *args_legacy[] = { "sudo", "shutdown", "-h", "now", NULL };
+	execvp("sudo", args_legacy);
+	fprintf(stderr, "Error: cannot shutdown. Check your /etc/sudoers file.\n");
+}
+#endif
+
 static void
 #ifdef HAVE_BSD_AUTH
 readpw(Display *dpy)
@@ -158,14 +174,12 @@ readpw(Display *dpy, const char *pws)
 				if(running) {
 					XBell(dpy, 100);
 					lock_tries++;
-#ifdef TWILIO_SEND
+#if TWILIO_SEND
 					twilio_send("Bad screenlock password.", 1);
 #endif
 #if SLOCK_SHUTDOWN
 					if(lock_tries > 5) {
-						// Needs sudo privileges for systemctl
-						char *args[] = { "sudo", "systemctl", "poweroff", NULL };
-						execvp("sudo", args);
+						poweroff();
 						// if we failed, simply resume
 						len = 0;
 						break;
@@ -214,15 +228,11 @@ readpw(Display *dpy, const char *pws)
 			case XK_F11:
 			case XK_F12:
 			case XK_F13:
-#ifdef TWILIO_SEND
+#if TWILIO_SEND
 				twilio_send("Bad screenlock key.", 0);
 #endif
-				// Needs sudo privileges for systemctl
-				if (alt_kill) {
-					char *args[] = { "sudo", "systemctl", "poweroff", NULL };
-					execvp("sudo", args);
-					// fall-through if we fail
-				}
+				poweroff();
+				; // fall-through if we fail
 #endif
 			default:
 				if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
@@ -365,9 +375,7 @@ main(int argc, char **argv) {
 	snprintf(buf, sizeof(buf), "%s/.slock_passwd", getenv("HOME"));
 	g_pw = read_pfile(buf);
 
-	if((argc > 1) && !strcmp("-n", argv[1])) {
-		alt_kill = 0;
-	} else if((argc >= 2) && !strcmp("-v", argv[1])) {
+	if((argc >= 2) && !strcmp("-v", argv[1])) {
 		die("slock-%s, © 2006-2012 Anselm R Garbe\n", VERSION);
 	} else if(argc != 1) {
 		usage();

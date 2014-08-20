@@ -21,11 +21,11 @@ Changes by chjj
 
   - Automatic shutdown requires a sudoers option to be set in /etc/sudoers:
 
-    [user] [host] =NOPASSWD: /usr/bin/systemctl poweroff,/usr/bin/systemctl halt,/usr/bin/systemctl reboot
+    - systemd: `[username] [hostname] =NOPASSWD: /usr/bin/systemctl poweroff`
+    - sysvinit: `[username] [hostname] =NOPASSWD: /usr/bin/shutdown -h now`
 
-    You must change [user] and [host] to your username and the hostname of the
-    machine. Note that this only works with systemd, however, it could be
-    modified for a regular init by using the shutdown command.
+    You must change [username] and [hostname] to your username and the hostname
+    of the machine.
 
 - Twilio Support: You will receive an SMS to your phone when someone inputs a
   wrong password or pressed ALT/CTRL/F1-13/SYSRQ. See twilio_example.h to create a

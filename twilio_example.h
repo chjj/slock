@@ -1,5 +1,4 @@
-#define TWILIO_SEND
-#define TWILIO_API_SIZE (450 * sizeof(char))
+#define TWILIO_API_SIZE (500 * sizeof(char))
 
 static int
 twilio_send(const char *msg, int async) {
