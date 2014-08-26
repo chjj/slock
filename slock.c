@@ -25,12 +25,21 @@
 #include <bsd_auth.h>
 #endif
 
-#define SLOCK_SHUTDOWN 1
-#define TWILIO_SEND 1
+#define CMD_LENGTH (500 * sizeof(char))
 
-#if TWILIO_SEND
+#define POWEROFF 1
+#define TWILIO_SEND 1
+#define WEBCAM_SHOT 1
+#define IMGUR_UPLOAD 0
+#define PLAY_AUDIO 1
+
+#include "imgur.h"
 #include "twilio.h"
-#endif
+
+typedef struct {
+  char *link;
+  char *deletehash;
+} imgur_data;
 
 char *g_pw = NULL;
 int lock_tries = 0;
@@ -111,19 +120,252 @@ getpw(void) { /* only run as root */
 }
 #endif
 
-#if SLOCK_SHUTDOWN
+static char *
+read_tfile(char *name) {
+	FILE *f = fopen(name, "r");
+
+	struct stat s;
+	if (stat(name, &s) == -1) goto error;
+
+	char *buf = malloc(s.st_size);
+	if (buf == NULL) goto error;
+	fread(buf, 1, s.st_size, f);
+	fclose(f);
+
+	int i = 0;
+	while (buf[i]) {
+		if (buf[i] == '\r' || buf[i] == '\n') {
+			buf[i] = '\0';
+			break;
+		}
+		i++;
+	}
+
+	return buf;
+
+error:
+		fprintf(stderr, "Could not open: %s.\n", name);
+		return NULL;
+}
+
+// Poweroff if we're in danger.
 static void
-poweroff() {
+poweroff(void) {
+#if POWEROFF
 	// Needs sudo privileges - alter your /etc/sudoers file:
 	// systemd: [username] [hostname] =NOPASSWD: /usr/bin/systemctl poweroff
 	// sysvinit: [username] [hostname] =NOPASSWD: /usr/bin/shutdown -h now
 	char *args[] = { "sudo", "systemctl", "poweroff", NULL };
-	execvp("sudo", args);
 	char *args_legacy[] = { "sudo", "shutdown", "-h", "now", NULL };
-	execvp("sudo", args_legacy);
+	execvp(args[0], args);
+	execvp(args_legacy[0], args_legacy);
 	fprintf(stderr, "Error: cannot shutdown. Check your /etc/sudoers file.\n");
-}
+#else
+	return;
 #endif
+}
+
+// Take a screenshot of whoever is at the keyboard.
+static int
+webcam_shot(int async) {
+#if WEBCAM_SHOT
+	char *cmd = (char *)malloc(CMD_LENGTH);
+
+	int r = snprintf(cmd, CMD_LENGTH,
+		"ffmpeg -y -loglevel quiet -f video4linux2 -i /dev/video0"
+		" -frames:v 1 -f image2 %s/slock.jpg%s",
+		getenv("HOME"), async ? " &" : "");
+
+	if (r > 0) {
+		system(cmd);
+		r = 0;
+	} else {
+		r = -1;
+	}
+
+	free(cmd);
+
+	return r;
+#else
+	return 0;
+#endif
+}
+
+static int
+twilio_send(const char *msg, imgur_data *idata, int async) {
+#if TWILIO_SEND
+	char *cmd = (char *)malloc(CMD_LENGTH);
+
+	// Send the SMS/MMS via Twilio
+	int r = snprintf(cmd, CMD_LENGTH,
+		"curl -s -A '' -X POST https://api.twilio.com/2010-04-01/Accounts/"
+		TWILIO_ACCOUNT "/SMS/Messages.json"
+		" -u " TWILIO_AUTH
+		" --data-urlencode 'From=" TWILIO_FROM "'"
+		" --data-urlencode 'To=" TWILIO_TO "'"
+		" --data-urlencode 'Body=%s'"
+		" --data-urlencode 'MediaUrl=%s' > /dev/null"
+		"%s", msg, idata ? idata->link : "", async ? " &" : "");
+
+	if (r > 0) {
+		system(cmd);
+		r = 0;
+	} else {
+		r = -1;
+	}
+
+	free(cmd);
+
+	return r;
+#else
+	return 0;
+#endif
+}
+
+static imgur_data *
+imgur_upload(void) {
+#if IMGUR_UPLOAD
+	char *buf = (char *)malloc(CMD_LENGTH);
+	imgur_data *idata = (imgur_data *)malloc(sizeof(imgur_data));
+	memset(idata, 0, sizeof(imgur_data));
+	int r;
+
+	// Upload the imgur image:
+	r = snprintf(buf, CMD_LENGTH,
+		"curl -s -A '' -X POST"
+		" -H 'Authorization: Client-ID " IMGUR_CLIENT "'"
+		" -F 'image=@%s/slock.jpg'"
+		" 'https://api.imgur.com/3/image' > %s/slock_imgur.curl",
+		getenv("HOME"), getenv("HOME"));
+
+	if (r > 0) {
+		system(buf);
+		r = 0;
+	} else {
+		r = -1;
+	}
+	if (r == -1) return NULL;
+
+	// Get the link:
+	r = snprintf(buf, CMD_LENGTH,
+		"cat %s/slock_imgur.curl"
+		" | grep -o '\"link\":\"[^\"]\\+'"
+		" | sed 's/\\\\//g'"
+		" | grep -o '[^\"]\\+$'"
+		" > %s/slock_imgur.link",
+		getenv("HOME"), getenv("HOME"));
+
+	if (r > 0) {
+		system(buf);
+		r = 0;
+	} else {
+		r = -1;
+	}
+	if (r == -1) return NULL;
+
+	// Get the deletehash:
+	r = snprintf(buf, CMD_LENGTH,
+		"cat %s/slock_imgur.curl"
+		" | grep -o '\"deletehash\":\"[^\"]\\+'"
+		" | grep -o '[^\"]\\+$'"
+		" > %s/slock_imgur.deletehash",
+		getenv("HOME"), getenv("HOME"));
+
+	if (r > 0) {
+		system(buf);
+		r = 0;
+	} else {
+		r = -1;
+	}
+	if (r == -1) return NULL;
+
+	r = snprintf(buf, CMD_LENGTH, "%s/slock_imgur.curl", getenv("HOME"));
+	if (r > 0) {
+		unlink(buf);
+	}
+
+	r = snprintf(buf, CMD_LENGTH, "%s/slock_imgur.link", getenv("HOME"));
+	if (r > 0) {
+		idata->link = read_tfile(buf);
+		unlink(buf);
+	}
+
+	r = snprintf(buf, CMD_LENGTH, "%s/slock_imgur.deletehash", getenv("HOME"));
+	if (r > 0) {
+		idata->deletehash = read_tfile(buf);
+		unlink(buf);
+	}
+
+	free(buf);
+
+	if (idata->link == NULL
+			|| !strlen(idata->link)
+			|| idata->deletehash == NULL
+			|| !strlen(idata->deletehash)) {
+		return NULL;
+	}
+
+	return idata;
+#else
+	return NULL;
+#endif
+}
+
+static int
+imgur_delete(imgur_data *idata) {
+#if IMGUR_UPLOAD
+	char *cmd = (char *)malloc(CMD_LENGTH);
+
+	// Delete the imgur image:
+	int r = snprintf(cmd, CMD_LENGTH,
+		"curl -s -A '' -X DELETE"
+		" -H 'Authorization: Client-ID " IMGUR_CLIENT "'"
+		" 'https://api.imgur.com/3/image/%s'", idata->deletehash);
+
+	// Wait for Twilio to do its request:
+	sleep(2);
+
+	if (r > 0) {
+		system(cmd);
+		r = 0;
+	} else {
+		r = -1;
+	}
+
+	free(cmd);
+	free(idata->link);
+	free(idata->deletehash);
+	free(idata);
+
+	return r;
+#else
+	return 0;
+#endif
+}
+
+static void
+play_beep(int async) {
+#if PLAY_AUDIO
+	char snd[255] = {0};
+	snprintf(snd, sizeof(snd), "aplay %s/slock/beep.wav 2> /dev/null%s",
+		getenv("HOME"), async ? " &" : "");
+	system(snd);
+#else
+	return;
+#endif
+}
+
+static void
+play_alarm(int async) {
+#if PLAY_AUDIO
+	char snd[255] = {0};
+	snprintf(snd, sizeof(snd), "aplay %s/slock/police.wav 2> /dev/null%s",
+		getenv("HOME"), async ? " &" : "");
+	system(snd);
+#else
+	return;
+#endif
+}
 
 static void
 #ifdef HAVE_BSD_AUTH
@@ -137,6 +379,7 @@ readpw(Display *dpy, const char *pws)
 	unsigned int len, llen;
 	KeySym ksym;
 	XEvent ev;
+	imgur_data *idata = NULL;
 
 	len = llen = 0;
 	running = True;
@@ -174,32 +417,44 @@ readpw(Display *dpy, const char *pws)
 				if(running) {
 					XBell(dpy, 100);
 					lock_tries++;
-#if TWILIO_SEND
-					twilio_send("Bad screenlock password.", 1);
-#endif
-#if SLOCK_SHUTDOWN
+
+					// Poweroff if there are more than 5 bad attempts.
 					if(lock_tries > 5) {
+						// Take a webcam shot of whoever is tampering with our machine:
+						webcam_shot(0);
+
+						// Upload the image:
+						idata = imgur_upload();
+
+						// Send an SMS/MMS via twilio:
+						twilio_send("Bad screenlock password.", idata, 0);
+
+						// Delete the image from imgur:
+						imgur_delete(idata);
+
+						// Immediately poweroff:
 						poweroff();
-						// if we failed, simply resume
+
+						// If we failed, simply resume:
 						len = 0;
 						break;
-					}
-#endif
-					if(lock_tries > 2) {
-						// http://soundbible.com/1819-Police.html
-						char snd[255] = {0};
-						snprintf(snd, sizeof(snd), "aplay %s/slock/police.wav", getenv("HOME"));
-						system(snd);
 					} else {
-						char snd[255] = {0};
-						snprintf(snd, sizeof(snd), "aplay %s/slock/beep.wav", getenv("HOME"));
-						system(snd);
+						// Take a webcam shot of whoever is tampering with our machine:
+						webcam_shot(1);
+
+						// Send an SMS via twilio:
+						twilio_send("Bad screenlock password.", NULL, 1);
+					}
+
+					// Play a siren if there are more than 2 bad
+					// passwords, a beep if a correct password:
+					if(lock_tries > 2) {
+						play_alarm(0);
+					} else {
+						play_beep(0);
 					}
 				} else {
-					// http://soundbible.com/1815-A-Tone.html
-					char snd[255] = {0};
-					snprintf(snd, sizeof(snd), "aplay %s/slock/beep.wav &", getenv("HOME"));
-					system(snd);
+					play_beep(1);
 				}
 				len = 0;
 				break;
@@ -210,7 +465,6 @@ readpw(Display *dpy, const char *pws)
 				if(len)
 					--len;
 				break;
-#if SLOCK_SHUTDOWN
 			case XK_Alt_L:
 			case XK_Alt_R:
 			case XK_Control_L:
@@ -228,12 +482,22 @@ readpw(Display *dpy, const char *pws)
 			case XK_F11:
 			case XK_F12:
 			case XK_F13:
-#if TWILIO_SEND
-				twilio_send("Bad screenlock key.", 0);
-#endif
+				// Take a webcam shot of whoever is tampering with our machine:
+				webcam_shot(0);
+
+				// Upload our image:
+				idata = imgur_upload();
+
+				// Send an SMS/MMS via twilio:
+				twilio_send("Bad screenlock key.", idata, 0);
+
+				// Delete the image from imgur:
+				imgur_delete(idata);
+
+				// Immediately poweroff:
 				poweroff();
+
 				; // fall-through if we fail
-#endif
 			default:
 				if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
 					memcpy(passwd + len, buf, num);
@@ -339,25 +603,6 @@ usage(void) {
 	exit(EXIT_FAILURE);
 }
 
-static char *
-read_pfile(char *name) {
-	FILE *f = fopen(name, "r");
-
-	struct stat s;
-	if (stat(name, &s) == -1) goto error;
-
-	char *buf = malloc(s.st_size);
-	if (buf == NULL) goto error;
-	fread(buf, 1, s.st_size, f);
-	fclose(f);
-
-	return buf;
-
-error:
-		fprintf(stderr, "Could not open: %s.\n", name);
-		return NULL;
-}
-
 int
 main(int argc, char **argv) {
 #ifndef HAVE_BSD_AUTH
@@ -373,23 +618,12 @@ main(int argc, char **argv) {
 
 	char buf[255] = {0};
 	snprintf(buf, sizeof(buf), "%s/.slock_passwd", getenv("HOME"));
-	g_pw = read_pfile(buf);
+	g_pw = read_tfile(buf);
 
 	if((argc >= 2) && !strcmp("-v", argv[1])) {
 		die("slock-%s, © 2006-2012 Anselm R Garbe\n", VERSION);
 	} else if(argc != 1) {
 		usage();
-	}
-
-	if (g_pw) {
-		int i = 0;
-		while (g_pw[i]) {
-			if (g_pw[i] == '\r' || g_pw[i] == '\n') {
-				g_pw[i] = '\0';
-				break;
-			}
-			i++;
-		}
 	}
 
 #ifdef __linux__

@@ -1,17 +1,4 @@
-#define TWILIO_API_SIZE (500 * sizeof(char))
-
-static int
-twilio_send(const char *msg, int async) {
-	char *cmd = (char *)malloc(TWILIO_API_SIZE);
-	int r = snprintf(cmd, TWILIO_API_SIZE,
-		"curl -X POST https://api.twilio.com/2010-04-01/Accounts/{account}/SMS/Messages.json"
-		" -u {username}:{password}"
-		" --data-urlencode 'From=+{twilio-number}'"
-		" --data-urlencode 'To=+{phone-number}'"
-		" --data-urlencode 'Body=%s'"
-		"%s", msg, async ? " &" : "");
-	if (r == -1) return r;
-	r = system(cmd);
-	free(cmd);
-	return r;
-}
+#define TWILIO_ACCOUNT "{account-id}"
+#define TWILIO_AUTH "{user}:{pass}"
+#define TWILIO_FROM "+12225550001"
+#define TWILIO_TO "+12225550002"
