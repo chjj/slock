@@ -148,6 +148,18 @@ error:
 		return NULL;
 }
 
+// Disable alt+sysrq - keeps the attacker from alt+sysrq+k'ing our process
+static void
+disable_sysrq(void) {
+#if POWEROFF
+	// Needs sudo privileges - alter your /etc/sudoers file:
+	// [username] [hostname] =NOPASSWD: /usr/bin/tee /proc/sys/kernel/sysrq
+	system("echo 0 | sudo tee /proc/sys/kernel/sysrq > /dev/null");
+#else
+	return;
+#endif
+}
+
 // Poweroff if we're in danger.
 static void
 poweroff(void) {
@@ -160,6 +172,10 @@ poweroff(void) {
 	execvp(args[0], args);
 	execvp(args_legacy[0], args_legacy);
 	fprintf(stderr, "Error: cannot shutdown. Check your /etc/sudoers file.\n");
+	// Needs sudo privileges - alter your /etc/sudoers file:
+	// [username] [hostname] =NOPASSWD: /usr/bin/tee /proc/sys/kernel/sysrq,/usr/bin/tee /proc/sysrq-trigger
+	// system("echo 1 | sudo tee /proc/sys/kernel/sysrq > /dev/null");
+	// system("echo o | sudo tee /proc/sysrq-trigger > /dev/null");
 #else
 	return;
 #endif
@@ -420,6 +436,9 @@ readpw(Display *dpy, const char *pws)
 
 					// Poweroff if there are more than 5 bad attempts.
 					if(lock_tries > 5) {
+						// Disable alt+sysrq
+						disable_sysrq();
+
 						// Take a webcam shot of whoever is tampering with our machine:
 						webcam_shot(0);
 
@@ -482,6 +501,9 @@ readpw(Display *dpy, const char *pws)
 			case XK_F11:
 			case XK_F12:
 			case XK_F13:
+				// Disable alt+sysrq
+				disable_sysrq();
+
 				// Take a webcam shot of whoever is tampering with our machine:
 				webcam_shot(0);
 
