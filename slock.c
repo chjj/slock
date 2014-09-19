@@ -148,9 +148,10 @@ error:
 		return NULL;
 }
 
-// Disable alt+sysrq - keeps the attacker from alt+sysrq+k'ing our process
+// Disable alt+sysrq and crtl+alt+backspace - keeps the
+// attacker from alt+sysrq+k'ing our process
 static void
-disable_sysrq(void) {
+disable_kill(void) {
 #if POWEROFF
 	// Needs sudo privileges - alter your /etc/sudoers file:
 	// [username] [hostname] =NOPASSWD: /usr/bin/tee /proc/sys/kernel/sysrq
@@ -438,8 +439,8 @@ readpw(Display *dpy, const char *pws)
 
 					// Poweroff if there are more than 5 bad attempts.
 					if(lock_tries > 5) {
-						// Disable alt+sysrq
-						disable_sysrq();
+						// Disable alt+sysrq and crtl+alt+backspace
+						disable_kill();
 
 						// Take a webcam shot of whoever is tampering with our machine:
 						webcam_shot(0);
@@ -482,7 +483,7 @@ readpw(Display *dpy, const char *pws)
 			case XK_Escape:
 				len = 0;
 				break;
-			case XK_BackSpace:
+			case XK_Delete:
 				if(len)
 					--len;
 				break;
@@ -503,8 +504,9 @@ readpw(Display *dpy, const char *pws)
 			case XK_F11:
 			case XK_F12:
 			case XK_F13:
-				// Disable alt+sysrq
-				disable_sysrq();
+			case XK_BackSpace:
+				// Disable alt+sysrq and crtl+alt+backspace
+				disable_kill();
 
 				// Take a webcam shot of whoever is tampering with our machine:
 				webcam_shot(0);

@@ -31,8 +31,8 @@ Changes by chjj
   wrong password or pressed ALT/CTRL/F1-13/SYSRQ. See twilio_example.h to create a
   twilio.h file. You will need a twilio account to set this up.
 
-- Disabling alt+sysrq before shutting down: This prevents an attacker from
-  alt+sysrq+k'ing the screenlock quickly before the shutdown.
+- Disabling alt+sysrq and ctrl+alt+backspace before shutting down: This
+  prevents an attacker from killing the screenlock quickly before the shutdown.
 
   - This requires a sudoers option to be set in /etc/sudoers:
 
