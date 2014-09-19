@@ -154,7 +154,9 @@ disable_sysrq(void) {
 #if POWEROFF
 	// Needs sudo privileges - alter your /etc/sudoers file:
 	// [username] [hostname] =NOPASSWD: /usr/bin/tee /proc/sys/kernel/sysrq
-	system("echo 0 | sudo tee /proc/sys/kernel/sysrq > /dev/null");
+	system("echo 0 | sudo tee /proc/sys/kernel/sysrq > /dev/null &");
+	// Disable ctrl+alt+backspace
+	system("setxkbmap -option &");
 #else
 	return;
 #endif
