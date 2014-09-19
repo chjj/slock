@@ -342,7 +342,7 @@ imgur_delete(imgur_data *idata) {
 		" 'https://api.imgur.com/3/image/%s'", idata->deletehash);
 
 	// Wait for Twilio to do its request:
-	sleep(2);
+	sleep(5);
 
 	if (r > 0) {
 		system(cmd);
