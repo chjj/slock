@@ -484,6 +484,7 @@ readpw(Display *dpy, const char *pws)
 				len = 0;
 				break;
 			case XK_Delete:
+			case XK_BackSpace:
 				if(len)
 					--len;
 				break;
@@ -504,7 +505,7 @@ readpw(Display *dpy, const char *pws)
 			case XK_F11:
 			case XK_F12:
 			case XK_F13:
-			case XK_BackSpace:
+			// case XK_BackSpace:
 				// Disable alt+sysrq and crtl+alt+backspace
 				disable_kill();
 
