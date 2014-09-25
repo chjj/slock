@@ -27,9 +27,15 @@ Changes by chjj
     You must change [username] and [hostname] to your username and the hostname
     of the machine.
 
+- Webcam Support (requires ffmpeg): This will take a webcam shot of whoever may
+  be tampering with your machine before poweroff.
+
 - Twilio Support: You will receive an SMS to your phone when someone inputs a
   wrong password or pressed ALT/CTRL/F1-13/SYSRQ. See twilio_example.h to create a
   twilio.h file. You will need a twilio account to set this up.
+
+  These SMS's can optionally be MMS's containing a webcam shot of whoever is
+  potentially tampering with your machine.
 
 - Disabling alt+sysrq and ctrl+alt+backspace before shutting down: This
   prevents an attacker from killing the screenlock quickly before the shutdown.
