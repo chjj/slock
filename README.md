@@ -27,6 +27,10 @@ for me to use.
     You must change [username] and [hostname] to your username and the hostname
     of the machine.
 
+    NOTE: It is wise to combine this feature with a bios password as well as an
+    encrypted home+swap partition. Once your machine is powered off. Your data
+    is no longer accessible in any manner.
+
 - Webcam Support (requires ffmpeg): This will take a webcam shot of whoever may
   be tampering with your machine before poweroff.
 
@@ -42,7 +46,7 @@ for me to use.
 
   - This requires a sudoers option to be set in /etc/sudoers:
 
-    - [username] [hostname] =NOPASSWD: /usr/bin/tee /proc/sys/kernel/sysrq
+    - `[username] [hostname] =NOPASSWD: /usr/bin/tee /proc/sys/kernel/sysrq`
 
     You must change [username] and [hostname] to your username and the hostname
     of the machine.
