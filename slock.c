@@ -424,15 +424,15 @@ readpw(Display *dpy, const char *pws)
 			switch(ksym) {
 			case XK_Return:
 				passwd[len] = 0;
-#ifdef HAVE_BSD_AUTH
-				running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd);
-#else
 				if(g_pw) {
 					running = !!strcmp(passwd, g_pw);
 				} else {
+#ifdef HAVE_BSD_AUTH
+					running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd);
+#else
 					running = !!strcmp(crypt(passwd, pws), pws);
-				}
 #endif
+				}
 				if(running) {
 					XBell(dpy, 100);
 					lock_tries++;
