@@ -51,6 +51,11 @@ for me to use.
     You must change [username] and [hostname] to your username and the hostname
     of the machine.
 
+- Transparent Lock Screen
+
+  - The lock screen is now an ARGB window. The screen will dim on lock (or turn
+    black with no compositor).
+
 ## Requirements
 
 In order to build slock you need the Xlib header files.
