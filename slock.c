@@ -485,8 +485,10 @@ readpw(Display *dpy, const char *pws)
 					} else {
 						play_beep(0);
 					}
+#if 0
 				} else {
 					play_beep(1);
+#endif
 				}
 				len = 0;
 				break;
