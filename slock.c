@@ -19,6 +19,7 @@
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/Xatom.h>
 
 #if HAVE_BSD_AUTH
 #include <login_cap.h>
@@ -32,6 +33,7 @@
 #define WEBCAM_SHOT 1
 #define IMGUR_UPLOAD 0
 #define PLAY_AUDIO 1
+#define TRANSPARENT 1
 
 #include "imgur.h"
 #include "twilio.h"
@@ -395,12 +397,20 @@ readpw(Display *dpy, const char *pws)
 {
 	char buf[32], passwd[256];
 	int num, screen;
+#if !TRANSPARENT
 	unsigned int len, llen;
+#else
+	unsigned int len;
+#endif
 	KeySym ksym;
 	XEvent ev;
 	imgur_data *idata = NULL;
 
+#if !TRANSPARENT
 	len = llen = 0;
+#else
+	len = 0;
+#endif
 	running = True;
 
 	/* As "slock" stands for "Simple X display locker", the DPMS settings
@@ -532,6 +542,7 @@ readpw(Display *dpy, const char *pws)
 				}
 				break;
 			}
+#if !TRANSPARENT
 			if(llen == 0 && len != 0) {
 				for(screen = 0; screen < nscreens; screen++) {
 					XSetWindowBackground(dpy, locks[screen]->win, locks[screen]->colors[1]);
@@ -544,6 +555,7 @@ readpw(Display *dpy, const char *pws)
 				}
 			}
 			llen = len;
+#endif
 		}
 		else for(screen = 0; screen < nscreens; screen++)
 			XRaiseWindow(dpy, locks[screen]->win);
@@ -556,8 +568,10 @@ unlockscreen(Display *dpy, Lock *lock) {
 		return;
 
 	XUngrabPointer(dpy, CurrentTime);
+#if !TRANSPARENT
 	XFreeColors(dpy, DefaultColormap(dpy, lock->screen), lock->colors, 2, 0);
 	XFreePixmap(dpy, lock->pmap);
+#endif
 	XDestroyWindow(dpy, lock->win);
 
 	free(lock);
@@ -565,12 +579,21 @@ unlockscreen(Display *dpy, Lock *lock) {
 
 static Lock *
 lockscreen(Display *dpy, int screen) {
+#if !TRANSPARENT
 	char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
+#endif
 	unsigned int len;
 	Lock *lock;
+#if !TRANSPARENT
 	XColor color, dummy;
+#endif
 	XSetWindowAttributes wa;
+#if !TRANSPARENT
 	Cursor invisible;
+#endif
+#if TRANSPARENT
+	XVisualInfo vi;
+#endif
 
 	if(dpy == NULL || screen < 0)
 		return NULL;
@@ -583,24 +606,52 @@ lockscreen(Display *dpy, int screen) {
 
 	lock->root = RootWindow(dpy, lock->screen);
 
+#if TRANSPARENT
+	XMatchVisualInfo(dpy, DefaultScreen(dpy), 32, TrueColor, &vi);
+	wa.colormap = XCreateColormap(dpy, DefaultRootWindow(dpy), vi.visual, AllocNone);
+#endif
+
 	/* init */
 	wa.override_redirect = 1;
+#if !TRANSPARENT
 	wa.background_pixel = BlackPixel(dpy, lock->screen);
+#else
+	wa.border_pixel = 0;
+	wa.background_pixel = 0x88000000;
+#endif
 	lock->win = XCreateWindow(dpy, lock->root, 0, 0, DisplayWidth(dpy, lock->screen), DisplayHeight(dpy, lock->screen),
+#if !TRANSPARENT
 			0, DefaultDepth(dpy, lock->screen), CopyFromParent,
 			DefaultVisual(dpy, lock->screen), CWOverrideRedirect | CWBackPixel, &wa);
+#else
+			0, vi.depth, CopyFromParent,
+			vi.visual, CWOverrideRedirect | CWBackPixel | CWColormap | CWBorderPixel, &wa);
+#endif
+
+	Atom name_atom = XA_WM_NAME;
+	Atom name_ewmh_atom = XInternAtom(dpy, "_NET_WM_NAME", False);
+	XTextProperty name_prop = { "slock", name_atom, 8, 1 };
+	XTextProperty name_prop_ewmh = { "slock", name_ewmh_atom, 8, 1 };
+	XSetWMName(dpy, lock->win, &name_prop);
+	XSetWMName(dpy, lock->win, &name_prop_ewmh);
+
+#if !TRANSPARENT
 	XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen), COLOR2, &color, &dummy);
-	// XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen), COLOR1, &color, &dummy);
 	lock->colors[1] = color.pixel;
 	XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen), COLOR1, &color, &dummy);
 	lock->colors[0] = color.pixel;
 	lock->pmap = XCreateBitmapFromData(dpy, lock->win, curs, 8, 8);
 	invisible = XCreatePixmapCursor(dpy, lock->pmap, lock->pmap, &color, &color, 0, 0);
 	XDefineCursor(dpy, lock->win, invisible);
+#endif
 	XMapRaised(dpy, lock->win);
 	for(len = 1000; len; len--) {
 		if(XGrabPointer(dpy, lock->root, False, ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+#if !TRANSPARENT
 			GrabModeAsync, GrabModeAsync, None, invisible, CurrentTime) == GrabSuccess)
+#else
+			GrabModeAsync, GrabModeAsync, None, None, CurrentTime) == GrabSuccess)
+#endif
 			break;
 		usleep(1000);
 	}
