@@ -504,6 +504,10 @@ readpw(Display *dpy, const char *pws)
 			case XK_Alt_R:
 			case XK_Control_L:
 			case XK_Control_R:
+			case XK_Meta_L:
+			case XK_Meta_R:
+			case XK_Super_L:
+			case XK_Super_R:
 			case XK_F1:
 			case XK_F2:
 			case XK_F3:
@@ -619,7 +623,7 @@ lockscreen(Display *dpy, int screen) {
 	wa.background_pixel = BlackPixel(dpy, lock->screen);
 #else
 	wa.border_pixel = 0;
-	wa.background_pixel = 0x88000000;
+	wa.background_pixel = 0xaa000000;
 #endif
 	lock->win = XCreateWindow(dpy, lock->root, 0, 0, DisplayWidth(dpy, lock->screen), DisplayHeight(dpy, lock->screen),
 #if !TRANSPARENT
@@ -631,11 +635,21 @@ lockscreen(Display *dpy, int screen) {
 #endif
 
 	Atom name_atom = XA_WM_NAME;
-	Atom name_ewmh_atom = XInternAtom(dpy, "_NET_WM_NAME", False);
-	XTextProperty name_prop = { "slock", name_atom, 8, 1 };
-	XTextProperty name_prop_ewmh = { "slock", name_ewmh_atom, 8, 1 };
+	XTextProperty name_prop = { "slock", name_atom, 8, 5 };
 	XSetWMName(dpy, lock->win, &name_prop);
-	XSetWMName(dpy, lock->win, &name_prop_ewmh);
+
+	// Atom name_ewmh_atom = XInternAtom(dpy, "_NET_WM_NAME", False);
+	// XTextProperty name_ewmh_prop = { "slock", name_ewmh_atom, 8, 5 };
+	// XSetTextProperty(dpy, lock->win, &name_ewmh_prop, name_ewmh_atom);
+	// XSetWMName(dpy, lock->win, &name_ewmh_prop);
+
+	XClassHint *hint = XAllocClassHint();
+	if (hint) {
+		hint->res_name = "slock";
+		hint->res_class = "slock";
+		XSetClassHint(dpy, lock->win, hint);
+		XFree(hint);
+	}
 
 #if !TRANSPARENT
 	XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen), COLOR2, &color, &dummy);
