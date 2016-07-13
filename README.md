@@ -31,6 +31,20 @@ for me to use.
     encrypted home+swap partition. Once your machine is powered off. Your data
     is no longer accessible in any manner.
 
+- GRSecurity BadUSB Prevention: If you have GRSecurity patched onto and enabled
+  in your kernel, when slock is started, all new USB devices will be disabled.
+  This requires that the kernel.grsecurity.grsec_lock sysctl option be set to 0,
+  which is a security risk to an attacker with local access. If you enable
+  STRICT\_USBOFF when slock comes on, kernel.grsecurity.grsec_lock will be set
+  to 1 and new USB devices will denied until you reboot.
+
+  You will need to have this line in your /etc/sysctl.d/grsec.conf
+
+        kernel.grsecurity.grsec_lock = 0
+
+  and it also requires the same permissions as Automatic Shutdown in
+  /etc/sudoers.
+
 - Webcam Support (requires ffmpeg): This will take a webcam shot of whoever may
   be tampering with your machine before poweroff.
 
