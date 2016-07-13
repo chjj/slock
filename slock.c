@@ -29,6 +29,8 @@
 #define CMD_LENGTH (500 * sizeof(char))
 
 #define POWEROFF 1
+#define USBOFF 1
+#define STRICT_USBOFF 0
 #define TWILIO_SEND 1
 #define WEBCAM_SHOT 1
 #define IMGUR_UPLOAD 0
@@ -181,6 +183,35 @@ poweroff(void) {
 	// [username] [hostname] =NOPASSWD: /usr/bin/tee /proc/sys/kernel/sysrq,/usr/bin/tee /proc/sysrq-trigger
 	// system("echo 1 | sudo tee /proc/sys/kernel/sysrq > /dev/null");
 	// system("echo o | sudo tee /proc/sysrq-trigger > /dev/null");
+#else
+	return;
+#endif
+}
+
+static void
+usboff(void) {
+#if USBOFF
+	// Needs sudo privileges - alter your /etc/sudoers file:
+	// sysctl: [username] [hostname] =NOPASSWD: /usr/bin/sysctl kernel.grsecurity.deny_new_usb=0
+	char *args[] = { "sudo", "sysctl", "kernel.grsecurity.deny_new_usb=1", NULL };
+        #if STRICT_USBOFF
+                char *argst[] = { "sudo", "sysctl", "kernel.grsecurity.grsec_lock=1", NULL };
+                execvp(argst[0], argst);
+        #endif
+	execvp(args[0], args);
+#else
+	return;
+#endif
+}
+
+// Turn on USB when the correct password is entered.
+static void
+usbon(void) {
+#if USBOFF
+	// Needs sudo privileges - alter your /etc/sudoers file:
+	// sysctl: [username] [hostname] =NOPASSWD: /usr/bin/sysctl kernel.grsecurity.deny_new_usb=0
+	char *args[] = { "sudo", "sysctl", "kernel.grsecurity.deny_new_usb=0", NULL };
+	execvp(args[0], args);
 #else
 	return;
 #endif
@@ -570,6 +601,7 @@ readpw(Display *dpy, const char *pws)
 
 static void
 unlockscreen(Display *dpy, Lock *lock) {
+        usbon();
 	if(dpy == NULL || lock == NULL)
 		return;
 
@@ -687,7 +719,7 @@ lockscreen(Display *dpy, int screen) {
 	}
 	else
 		XSelectInput(dpy, lock->root, SubstructureNotifyMask);
-
+        usboff();
 	return lock;
 }
 
