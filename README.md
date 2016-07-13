@@ -42,7 +42,7 @@ for me to use.
 
         kernel.grsecurity.grsec_lock = 0
 
-  and it also requires similar permissions as Automatic Shutdown in
+  and it also requires similar permissions to Automatic Shutdown in
   /etc/sudoers.
 
     - `[username] [hostname] =NOPASSWD: /usr/bin/sysctl kernel.grsecurity.deny_new_usb=1`
