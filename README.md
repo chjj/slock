@@ -45,8 +45,8 @@ for me to use.
   and it also requires similar permissions to Automatic Shutdown in
   /etc/sudoers.
 
-    - `[username] [hostname] =NOPASSWD: /usr/bin/sysctl kernel.grsecurity.deny_new_usb=1`
-    - `[username] [hostname] =NOPASSWD: /usr/bin/sysctl kernel.grsecurity.deny_new_usb=0`
+    - `[username] [hostname] =NOPASSWD: /sbin/sysctl kernel.grsecurity.deny_new_usb=1`
+    - `[username] [hostname] =NOPASSWD: /sbin/sysctl kernel.grsecurity.deny_new_usb=0`
 
 - Webcam Support (requires ffmpeg): This will take a webcam shot of whoever may
   be tampering with your machine before poweroff.
