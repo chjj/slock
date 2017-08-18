@@ -68,6 +68,14 @@ for me to use.
     You must change [username] and [hostname] to your username and the hostname
     of the machine.
 
+- To ensure the OOM-killer is disabled, sudo can be used internally. This
+  requires another sudoers option:
+
+  - `[username] [hostname] =NOPASSWD: /usr/bin/tee /proc/[0-9][0-9]*/oom_score_adj`
+
+  However, this is not recommended as now any process can modify the oom_score
+  for any other process.
+
 - Transparent Lock Screen
 
   - The lock screen is now an ARGB window. The screen will dim on lock (or turn
