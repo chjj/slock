@@ -1,4 +1,4 @@
-//` See LICENSE file for license details.
+// See LICENSE file for license details.
 #define _XOPEN_SOURCE 500
 #if HAVE_SHADOW_H
 #include <shadow.h>
@@ -143,7 +143,7 @@ getpw(void) {
 
   // drop privileges
   if (geteuid() == 0) {
-    if (getegid() != pw->pw_gid && setgid(pw->pw_gid) < 0) {
+    if (!(getegid() != pw->pw_gid && setgid(pw->pw_gid) < 0)) {
       if (setuid(pw->pw_uid) < 0)
         die("slock: cannot drop privileges\n");
     }
@@ -582,9 +582,6 @@ readpw(Display *dpy, const char *pws)
 
               free(link);
               free(hash);
-
-              link = NULL;
-              hash = NULL;
             }
 
             // Immediately poweroff:
@@ -667,9 +664,6 @@ readpw(Display *dpy, const char *pws)
 
           free(link);
           free(hash);
-
-          link = NULL;
-          hash = NULL;
         }
 
         // Immediately poweroff:
@@ -969,7 +963,7 @@ main(int argc, char **argv) {
   // Get the number of screens in display "dpy" and blank them all.
   nscreens = ScreenCount(dpy);
 
-	errno = 0;
+  errno = 0;
   locks = malloc(sizeof(Lock *) * nscreens);
 
   if (locks == NULL)
@@ -978,7 +972,7 @@ main(int argc, char **argv) {
   int nlocks = 0;
 
   for (screen = 0; screen < nscreens; screen++) {
-		locks[screen] = lockscreen(dpy, screen);
+    locks[screen] = lockscreen(dpy, screen);
     if (locks[screen] != NULL)
       nlocks++;
   }
