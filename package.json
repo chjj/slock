@@ -1,0 +1,9 @@
+{
+  "name": "slock",
+  "version": "1.2.0",
+  "repo": "chjj/slock",
+  "description": "simple screen locker utility for X",
+  "keywords": ["screen", "lock", "x", "utility"],
+  "install": "make clean install"
+}
+
