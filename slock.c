@@ -323,7 +323,8 @@ imgur_upload(char **link, char **hash) {
   *hash = NULL;
 
 #if IMGUR_UPLOAD
-  const char *HOME = getenv("HOME");
+  static const char *const HOME = getenv("HOME");
+  static const char *const HOME2 = HOME ? HOME : "";
   char cmd[CMD_LENGTH];
   int r;
 
@@ -335,8 +336,8 @@ imgur_upload(char **link, char **hash) {
     " -H 'Authorization: Client-ID " IMGUR_CLIENT "'"
     " -F 'image=@%s/slock.jpg'"
     " 'https://api.imgur.com/3/image' > %s/slock_imgur.curl",
-    HOME,
-    HOME
+    HOME2,
+    HOME2
   );
 
   if (r < 0 || r >= CMD_LENGTH)
@@ -353,8 +354,8 @@ imgur_upload(char **link, char **hash) {
     " | sed 's/\\\\//g'"
     " | grep -o '[^\"]\\+$'"
     " > %s/slock_imgur.link",
-    HOME,
-    HOME
+    HOME2,
+    HOME2
   );
 
   if (r < 0 || r >= CMD_LENGTH)
@@ -370,8 +371,8 @@ imgur_upload(char **link, char **hash) {
     " | grep -o '\"deletehash\":\"[^\"]\\+'"
     " | grep -o '[^\"]\\+$'"
     " > %s/slock_imgur.hash",
-    HOME,
-    HOME
+    HOME2,
+    HOME2
   );
 
   if (r < 0 || r >= CMD_LENGTH)
@@ -379,14 +380,14 @@ imgur_upload(char **link, char **hash) {
 
   system(cmd);
 
-  r = snprintf(cmd, CMD_LENGTH, "%s/slock_imgur.link", HOME);
+  r = snprintf(cmd, CMD_LENGTH, "%s/slock_imgur.link", HOME2);
 
   if (r < 0 || r >= CMD_LENGTH)
     goto cleanup;
 
   *link = read_file(cmd);
 
-  r = snprintf(cmd, CMD_LENGTH, "%s/slock_imgur.hash", HOME);
+  r = snprintf(cmd, CMD_LENGTH, "%s/slock_imgur.hash", HOME2);
 
   if (r < 0 || r >= CMD_LENGTH)
     goto cleanup;
@@ -394,17 +395,17 @@ imgur_upload(char **link, char **hash) {
   *hash = read_file(cmd);
 
 cleanup:
-  r = snprintf(cmd, CMD_LENGTH, "%s/slock_imgur.curl", HOME);
+  r = snprintf(cmd, CMD_LENGTH, "%s/slock_imgur.curl", HOME2);
 
   if (r >= 0 && r < CMD_LENGTH)
     unlink(cmd);
 
-  r = snprintf(cmd, CMD_LENGTH, "%s/slock_imgur.link", HOME);
+  r = snprintf(cmd, CMD_LENGTH, "%s/slock_imgur.link", HOME2);
 
   if (r >= 0 && r < CMD_LENGTH)
     unlink(cmd);
 
-  r = snprintf(cmd, CMD_LENGTH, "%s/slock_imgur.hash", HOME);
+  r = snprintf(cmd, CMD_LENGTH, "%s/slock_imgur.hash", HOME2);
 
   if (r >= 0 && r < CMD_LENGTH)
     unlink(cmd);
@@ -459,7 +460,7 @@ play_beep(int async) {
     cmd,
     CMD_LENGTH,
     "aplay %s/slock/beep.wav 2> /dev/null%s",
-    getenv("HOME"),
+    getenv("HOME") ? getenv("HOME") : "",
     async ? " &" : ""
   );
 
@@ -481,7 +482,7 @@ play_alarm(int async) {
     cmd,
     CMD_LENGTH,
     "aplay %s/slock/police.wav 2> /dev/null%s",
-    getenv("HOME"),
+    getenv("HOME") ? getenv("HOME") : "",
     async ? " &" : ""
   );
 
@@ -676,7 +677,7 @@ readpw(Display *dpy, const char *pws)
         break;
       }
       default: {
-        if (num && !iscntrl((int)buf[0]) && (len + num < sizeof(passwd))) {
+        if (num && !iscntrl((unsigned char)buf[0]) && (len + num < sizeof(passwd))) {
           memcpy(passwd + len, buf, num);
           len += num;
         }
@@ -915,7 +916,7 @@ read_pw_file(void) {
     name,
     sizeof(name),
     "%s/.slock_passwd",
-    getenv("HOME")
+    getenv("HOME") ? getenv("HOME") : ""
   );
 
   if (r < 0 || r >= sizeof(name))
@@ -940,7 +941,7 @@ main(int argc, char **argv) {
   g_pw = read_pw_file();
 
   if ((argc >= 2) && strcmp(argv[1], "-v") == 0) {
-    die("slock-%s, © 2006-2012 Anselm R Garbe\n", VERSION);
+    die("slock-%s, © 2006-2018 Anselm R Garbe\n", VERSION);
   } else if (argc != 1) {
     usage();
   }
