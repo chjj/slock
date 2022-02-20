@@ -217,11 +217,8 @@ disable_kill(void) {
 static void
 poweroff(void) {
 #if POWEROFF
-  // Needs sudo privileges - alter your /etc/sudoers file:
-  // systemd: [username] [hostname] =NOPASSWD: /usr/bin/systemctl poweroff
-  // sysvinit: [username] [hostname] =NOPASSWD: /usr/bin/shutdown -h now
-  system("sudo -n systemctl poweroff 2> /dev/null");
-  system("sudo -n shutdown -h now 2> /dev/null");
+  // No longer needs sudo privileges. Do not alter your /etc/sudoers file:
+  system("systemctl poweroff -i 2> /dev/null");
 #else
   return;
 #endif
